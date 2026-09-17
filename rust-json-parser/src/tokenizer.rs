@@ -6,7 +6,7 @@ pub enum Token {
     RightBracket,
     Comma,
     String(String),
-    Number,
+    Number(f64),
     Boolean,
     Null,
 }
@@ -36,6 +36,22 @@ pub fn tokenize(input: &str) -> Vec<Token> {
                 }
             }
             tokens.push(Token::String(value));
+        }
+        if character.is_ascii_digit() || character == '-' {
+            let mut number = String::new();
+            number.push(character);
+
+            while let Some(&next_character) = characters.peek() {
+                if next_character.is_ascii_digit() || next_character == '.' {
+                    number.push(next_character);
+                    characters.next();
+                } else {
+                    break;
+                }
+            }
+
+            let parsed_number: f64 = number.parse().unwrap();
+            tokens.push(Token::Number(parsed_number));
         }
     }
     tokens
@@ -95,5 +111,30 @@ mod tests {
         let tokens = tokenize(r#""phone: 555-1234""#);
         assert_eq!(tokens.len(), 1);
         assert_eq!(tokens[0], Token::String("phone: 555-1234".to_string()));
+    }
+    #[test]
+    fn test_number() {
+        let tokens = tokenize("42");
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0], Token::Number(42.0));
+    }
+    #[test]
+    fn test_negative_number() {
+        let tokens = tokenize("-42");
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0], Token::Number(-42.0));
+    }
+    #[test]
+    fn test_decimal_number() {
+        let tokens = tokenize("0.5");
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0], Token::Number(0.5));
+    }
+    #[test]
+    fn test_leading_decimal_not_a_number() {
+        //.5 is invalid JSON - number must have leading digit (0.5 is valid)
+        let tokens = tokenize(".5");
+        // should NOT be interpreted as 0.5
+        assert!(!tokens.contains(&Token::Number(0.5)));
     }
 }
