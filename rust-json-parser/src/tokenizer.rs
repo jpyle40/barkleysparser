@@ -5,9 +5,10 @@ pub enum Token {
     LeftBracket,
     RightBracket,
     Comma,
+    Colon,
     String(String),
     Number(f64),
-    Boolean,
+    Boolean(bool),
     Null,
 }
 
@@ -23,6 +24,12 @@ pub fn tokenize(input: &str) -> Vec<Token> {
         }
         if character == '}' {
             tokens.push(Token::RightBrace);
+        }
+        if character == ':' {
+            tokens.push(Token::Colon);
+        }
+        if character == ',' {
+            tokens.push(Token::Comma);
         }
 
         if character == '"' {
@@ -53,6 +60,32 @@ pub fn tokenize(input: &str) -> Vec<Token> {
             let parsed_number: f64 = number.parse().unwrap();
             tokens.push(Token::Number(parsed_number));
         }
+
+        if character.is_alphabetic() {
+            let mut value = String::new();
+            value.push(character);
+
+            while let Some(&next_character) = characters.peek(){
+                if next_character.is_alphabetic() {
+
+                    value.push(next_character);
+                    characters.next();
+                } else {
+
+                    break;
+                }
+
+            }
+            match value.as_str() {
+                "true" => tokens.push(Token::Boolean(true)),
+                "false" => tokens.push(Token::Boolean(false)),
+                "null" => tokens.push(Token::Null),
+                _=> {}
+
+            }
+        }
+
+
     }
     tokens
 }
@@ -137,4 +170,35 @@ mod tests {
         // should NOT be interpreted as 0.5
         assert!(!tokens.contains(&Token::Number(0.5)));
     }
+    #[test]
+    fn test_boolean_and_null() {
+        let tokens = tokenize("true false null");
+        assert_eq!(tokens.len(),3);
+        assert_eq!(tokens[0], Token::Boolean(true));
+        assert_eq!(tokens[1], Token::Boolean(false));
+        assert_eq!(tokens[2], Token::Null);
+
+    }
+    #[test]
+    fn test_simple_object() {
+        let tokens = tokenize(r#"{"name": "Alice"}"#);
+        assert_eq!(tokens.len(),5);
+        assert_eq!(tokens[0], Token::LeftBrace);
+        assert_eq!(tokens[1], Token::String("name".to_string()));
+        assert_eq!(tokens[2], Token::Colon);
+        assert_eq!(tokens[3], Token::String("Alice".to_string()));
+        assert_eq!(tokens[4], Token::RightBrace);
+    }
+    #[test]
+    fn test_multiple_values() {
+        let tokens = tokenize(r#"{"age": 30, "active": true}"#);
+        //Verify we have the right tokens
+        assert!(tokens.contains(&Token::String("age".to_string())));
+        assert!(tokens.contains(&Token::Number(30.0)));
+        assert!(tokens.contains(&Token::Comma));
+        assert!(tokens.contains(&Token::String("active".to_string())));
+        assert!(tokens.contains(&Token::Boolean(true)));
+
+    }
+
 }
