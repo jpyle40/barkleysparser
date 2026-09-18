@@ -19,19 +19,13 @@ pub fn tokenize(input: &str) -> Vec<Token> {
 
     while let Some(&character) = characters.peek() {
         characters.next();
-        if character == '{' {
-            tokens.push(Token::LeftBrace);
+        match character {
+            '{' => tokens.push(Token::LeftBrace),
+            '}' => tokens.push(Token::RightBrace),
+            ':' => tokens.push(Token::Colon),
+            ',' => tokens.push(Token::Comma),
+            _ => {}
         }
-        if character == '}' {
-            tokens.push(Token::RightBrace);
-        }
-        if character == ':' {
-            tokens.push(Token::Colon);
-        }
-        if character == ',' {
-            tokens.push(Token::Comma);
-        }
-
         if character == '"' {
             let mut value = String::new();
 
@@ -65,27 +59,21 @@ pub fn tokenize(input: &str) -> Vec<Token> {
             let mut value = String::new();
             value.push(character);
 
-            while let Some(&next_character) = characters.peek(){
+            while let Some(&next_character) = characters.peek() {
                 if next_character.is_alphabetic() {
-
                     value.push(next_character);
                     characters.next();
                 } else {
-
                     break;
                 }
-
             }
             match value.as_str() {
                 "true" => tokens.push(Token::Boolean(true)),
                 "false" => tokens.push(Token::Boolean(false)),
                 "null" => tokens.push(Token::Null),
-                _=> {}
-
+                _ => {}
             }
         }
-
-
     }
     tokens
 }
@@ -173,16 +161,15 @@ mod tests {
     #[test]
     fn test_boolean_and_null() {
         let tokens = tokenize("true false null");
-        assert_eq!(tokens.len(),3);
+        assert_eq!(tokens.len(), 3);
         assert_eq!(tokens[0], Token::Boolean(true));
         assert_eq!(tokens[1], Token::Boolean(false));
         assert_eq!(tokens[2], Token::Null);
-
     }
     #[test]
     fn test_simple_object() {
         let tokens = tokenize(r#"{"name": "Alice"}"#);
-        assert_eq!(tokens.len(),5);
+        assert_eq!(tokens.len(), 5);
         assert_eq!(tokens[0], Token::LeftBrace);
         assert_eq!(tokens[1], Token::String("name".to_string()));
         assert_eq!(tokens[2], Token::Colon);
@@ -198,7 +185,5 @@ mod tests {
         assert!(tokens.contains(&Token::Comma));
         assert!(tokens.contains(&Token::String("active".to_string())));
         assert!(tokens.contains(&Token::Boolean(true)));
-
     }
-
 }
