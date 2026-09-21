@@ -31,21 +31,17 @@ pub fn tokenize(input: &str) -> Vec<Token> {
                 let mut closed = false;
                 while let Some(next_character) = characters.next() {
                     match next_character {
-
                         '"' => {
                             closed = true;
                             break;
-
                         }
-                        '{' | '}' => continue,
                         _ => value.push(next_character),
                     }
                 }
-               match closed { 
-                 true =>  tokens.push(Token::String(value)),
-                 false => {}
-
-               }
+                match closed {
+                    true => tokens.push(Token::String(value)),
+                    false => {}
+                }
             }
 
             '0'..='9' | '-' => {
@@ -82,10 +78,11 @@ pub fn tokenize(input: &str) -> Vec<Token> {
                     "true" => tokens.push(Token::Boolean(true)),
                     "false" => tokens.push(Token::Boolean(false)),
                     "null" => tokens.push(Token::Null),
-                    _ => {}
+                    _ => println!("Found a unknown word: {:?}", value),
                 }
             }
-            _ => {}
+            ' ' | '\n' | '\t' | '\r' => {}
+            _ => println!("Found missing character: {:?}", character),
         }
     }
     tokens
@@ -130,7 +127,7 @@ mod tests {
         //Inner handing: JSON delimiters inside strings don't break tokenization
         let tokens = tokenize(r#""{key: value}""#);
         assert_eq!(tokens.len(), 1);
-        assert_eq!(tokens[0], Token::String("key: value".to_string()));
+        assert_eq!(tokens[0], Token::String("{key: value}".to_string()));
     }
     #[test]
     fn test_string_with_keyword_like_content() {
