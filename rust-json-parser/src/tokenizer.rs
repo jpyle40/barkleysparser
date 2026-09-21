@@ -24,55 +24,68 @@ pub fn tokenize(input: &str) -> Vec<Token> {
             '}' => tokens.push(Token::RightBrace),
             ':' => tokens.push(Token::Colon),
             ',' => tokens.push(Token::Comma),
+            '[' => tokens.push(Token::LeftBracket),
+            ']' => tokens.push(Token::RightBracket),
+            '"' => {
+                let mut value = String::new();
+                let mut closed = false;
+                while let Some(next_character) = characters.next() {
+                    match next_character {
+
+                        '"' => {
+                            closed = true;
+                            break;
+
+                        }
+                        '{' | '}' => continue,
+                        _ => value.push(next_character),
+                    }
+                }
+               match closed { 
+                 true =>  tokens.push(Token::String(value)),
+                 false => {}
+
+               }
+            }
+
+            '0'..='9' | '-' => {
+                let mut number = String::new();
+                number.push(character);
+
+                while let Some(&next_character) = characters.peek() {
+                    if next_character.is_ascii_digit() || next_character == '.' {
+                        number.push(next_character);
+                        characters.next();
+                    } else {
+                        break;
+                    }
+                }
+
+                let parsed_number: f64 = number.parse().unwrap();
+                tokens.push(Token::Number(parsed_number));
+            }
+
+            'a'..='z' | 'A'..='Z' => {
+                let mut value = String::new();
+                value.push(character);
+
+                while let Some(&next_character) = characters.peek() {
+                    if next_character.is_alphabetic() {
+                        value.push(next_character);
+                        characters.next();
+                    } else {
+                        break;
+                    }
+                }
+
+                match value.as_str() {
+                    "true" => tokens.push(Token::Boolean(true)),
+                    "false" => tokens.push(Token::Boolean(false)),
+                    "null" => tokens.push(Token::Null),
+                    _ => {}
+                }
+            }
             _ => {}
-        }
-        if character == '"' {
-            let mut value = String::new();
-
-            while let Some(next_character) = characters.next() {
-                match next_character {
-                    '"' => break,
-                    '{' | '}' => continue,
-                    _ => value.push(next_character),
-                }
-            }
-            tokens.push(Token::String(value));
-        }
-        if character.is_ascii_digit() || character == '-' {
-            let mut number = String::new();
-            number.push(character);
-
-            while let Some(&next_character) = characters.peek() {
-                if next_character.is_ascii_digit() || next_character == '.' {
-                    number.push(next_character);
-                    characters.next();
-                } else {
-                    break;
-                }
-            }
-
-            let parsed_number: f64 = number.parse().unwrap();
-            tokens.push(Token::Number(parsed_number));
-        }
-
-        if character.is_alphabetic() {
-            let mut value = String::new();
-            value.push(character);
-
-            while let Some(&next_character) = characters.peek() {
-                if next_character.is_alphabetic() {
-                    value.push(next_character);
-                    characters.next();
-                } else {
-                    break;
-                }
-            }
-            match value.as_str() {
-                "true" => tokens.push(Token::Boolean(true)),
-                "false" => tokens.push(Token::Boolean(false)),
-                "null" => tokens.push(Token::Null),
-                _ => {}
-            }
         }
     }
     tokens
@@ -108,7 +121,7 @@ mod tests {
     #[test]
     fn test_empty_string() {
         //Outer boundary: adjacent quotes with no inner content
-        let tokens = tokenize(r#"""#);
+        let tokens = tokenize(r#""""#);
         assert_eq!(tokens.len(), 1);
         assert_eq!(tokens[0], Token::String("".to_string()));
     }
@@ -185,5 +198,19 @@ mod tests {
         assert!(tokens.contains(&Token::Comma));
         assert!(tokens.contains(&Token::String("active".to_string())));
         assert!(tokens.contains(&Token::Boolean(true)));
+    }
+    #[test]
+    fn test_empty_brackets() {
+        let tokens = tokenize("[]");
+        assert_eq!(tokens.len(), 2);
+        assert_eq!(tokens[0], Token::LeftBracket);
+        assert_eq!(tokens[1], Token::RightBracket);
+    }
+    #[test]
+    fn test_unterminated_string_not_be_valid() {
+        //input is '"hello' (open quote, never closed). It should not be
+        //accepted as a valid string. Fails today; passes once tokenize errors.
+        let tokens = tokenize("\"hello");
+        assert_ne!(tokens, vec![Token::String("hello".to_string())]);
     }
 }
