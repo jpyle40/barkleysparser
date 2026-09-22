@@ -1,0 +1,67 @@
+// Week 2: Custom error type for JSON parsing
+use std::fmt;
+
+// TODO: Define your JsonError enum here
+// Hint: You need variants for:
+// - UnexpectedToken { expected: String, found: String, position: usize }
+// - UnexpectedEndOfInput { expected: String, position: usize }
+// - InvalidNumber { value: String, position: usize }
+#[derive(Debug, Clone, PartialEq)]
+pub enum JsonError {
+    UnexpectedToken {
+        expected: String,
+        found: String,
+        position: usize,
+    },
+}
+
+// TODO: Implement Display trait
+// impl fmt::Display for JsonError {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         // Your code here
+//     }
+// }
+
+// TODO: Implement Error trait
+// impl std::error::Error for JsonError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Tests will be added at each step below.
+    #[test]
+    fn test_error_creation() {
+        let error = JsonError::UnexpectedToken {
+            expected: "number".to_string(),
+            found: "@".to_string(),
+            position: 5,
+        };
+
+        //Error should be Debug printable
+        assert!(format!("{:?}", error).contains("UnexpectedToken"));
+    }
+    #[test]
+    fn test_error_variants() {
+        let token_error = JsonError::UnexpectedToken {
+            expected: "number".to_string(),
+            found: "x".to_string(),
+            position: 3,
+        };
+
+        let eof_error = JsonError::UnexpectedEndOfInput {
+            expected: "closing quote".to_string(),
+            position: 10,
+        };
+
+        let num_error = JsonError::InvalidNumber {
+            value: "12.34.56".to_string(),
+            position: 0,
+        };
+
+        //All variants should be Debug-printable
+        assert!(!format!("{:?}", token_error).is_empty());
+        assert!(!format!("{:?}", eof_error).is_empty());
+        assert!(!format!("{:?}", num_error).is_empty());
+    }
+}
