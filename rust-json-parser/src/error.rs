@@ -24,11 +24,25 @@ pub enum JsonError {
 }
 
 // TODO: Implement Display trait
-// impl fmt::Display for JsonError {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         // Your code here
-//     }
-// }
+impl fmt::Display for JsonError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            JsonError::UnexpectedToken { expected, found, position, } => {
+                write!( f, "Unexpected token at position {}: expected {}, found {}",
+                    position, expected, found)
+            }
+            JsonError::UnexpectedEndOfInput { expected, position, } => {
+                write!( f, "Unexpected end of Input at postion {}: expected {}",
+                    position, expected)
+            }
+            JsonError::InvalidNumber { value, position, } => {
+                write!( f, "Invalid number at position {}: value {}",
+                    position, value)
+            }
+
+        }
+    }
+}
 
 // TODO: Implement Error trait
 // impl std::error::Error for JsonError {}
@@ -71,5 +85,18 @@ mod tests {
         assert!(!format!("{:?}", token_error).is_empty());
         assert!(!format!("{:?}", eof_error).is_empty());
         assert!(!format!("{:?}", num_error).is_empty());
+    }
+    #[test]
+    fn test_error_display() {
+        let error = JsonError::UnexpectedToken {
+            expected: "valid JSON".to_string(),
+            found: "@".to_string(),
+            position: 0,
+        };
+
+        let message = format!("{}", error);
+        assert!(message.contains("position 0"));
+        assert!(message.contains("valid JSON"));
+        assert!(message.contains("@"));
     }
 }
