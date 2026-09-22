@@ -13,6 +13,14 @@ pub enum JsonError {
         found: String,
         position: usize,
     },
+    UnexpectedEndOfInput {
+        expected: String,
+        position: usize,
+    },
+    InvalidNumber {
+        value: String,
+        position: usize,
+    },
 }
 
 // TODO: Implement Display trait
