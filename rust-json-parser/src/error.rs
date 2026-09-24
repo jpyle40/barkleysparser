@@ -27,25 +27,37 @@ pub enum JsonError {
 impl fmt::Display for JsonError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            JsonError::UnexpectedToken { expected, found, position, } => {
-                write!( f, "Unexpected token at position {}: expected {}, found {}",
-                    position, expected, found)
+            JsonError::UnexpectedToken {
+                expected,
+                found,
+                position,
+            } => {
+                write!(
+                    f,
+                    "Unexpected token at position {}: expected {}, found {}",
+                    position, expected, found
+                )
             }
-            JsonError::UnexpectedEndOfInput { expected, position, } => {
-                write!( f, "Unexpected end of Input at postion {}: expected {}",
-                    position, expected)
+            JsonError::UnexpectedEndOfInput { expected, position } => {
+                write!(
+                    f,
+                    "Unexpected end of Input at postion {}: expected {}",
+                    position, expected
+                )
             }
-            JsonError::InvalidNumber { value, position, } => {
-                write!( f, "Invalid number at position {}: value {}",
-                    position, value)
+            JsonError::InvalidNumber { value, position } => {
+                write!(
+                    f,
+                    "Invalid number at position {}: value {}",
+                    position, value
+                )
             }
-
         }
     }
 }
 
 // TODO: Implement Error trait
- impl std::error::Error for JsonError {}
+impl std::error::Error for JsonError {}
 
 #[cfg(test)]
 mod tests {
