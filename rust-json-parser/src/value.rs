@@ -30,7 +30,6 @@ impl JsonValue {
         match self {
             JsonValue::Number(num_value) => Some(*num_value),
             _ => None,
-    
         }
     }
     pub fn as_bool(&self) -> Option<bool> {
@@ -38,7 +37,6 @@ impl JsonValue {
             JsonValue::Boolean(bool_value) => Some(*bool_value),
             _ => None,
         }
-
     }
 }
 
