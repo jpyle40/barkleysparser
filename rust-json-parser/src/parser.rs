@@ -13,7 +13,7 @@ pub fn parse_json(input: &str) -> Result<JsonValue> {
     // 1. Call tokenize(input)?  (? propagates errors)
     // 2. Check if tokens is empty
     // 3. Match on tokens[0] and convert to JsonValue
-    let tokens = tokenize(input);
+    let tokens = tokenize(input)?;
 
     match tokens.is_empty() {
         true => match input.trim().is_empty() {
