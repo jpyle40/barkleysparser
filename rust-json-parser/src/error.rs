@@ -41,7 +41,7 @@ impl fmt::Display for JsonError {
             JsonError::UnexpectedEndOfInput { expected, position } => {
                 write!(
                     f,
-                    "Unexpected end of Input at postion {}: expected {}",
+                    "Unexpected end of Input at position {}: expected {}",
                     position, expected
                 )
             }
