@@ -1,5 +1,98 @@
 use crate::error::JsonError;
 
+pub struct Tokenizer {
+    input: Vec<char>,
+    position: usize,
+}
+impl Tokenizer {
+    pub fn new(input: &str) -> Self {
+        Self {
+            input: input.chars().collect(),
+            position: 0,
+        }
+    }
+    pub fn tokenize(&mut self) -> Result<Vec<Token>, JsonError> {
+        let mut tokens = Vec::new();
+
+        while !self.is_at_end() {
+            let Some(character) = self.advance() else {
+                break;
+            };
+
+            match character {
+                '0'..='9' | '-' => {
+                    let mut number = String::new();
+                    number.push(character);
+
+                    while let Some(next_character) = self.peek() {
+                        if next_character.is_ascii_digit() || next_character == '.' {
+                            number.push(next_character);
+                            self.advance();
+                        } else {
+                            break;
+                        }
+                    }
+
+                    let parsed_number: f64 = match number.parse() {
+                        Ok(n) => n,
+                        Err(_) => {
+                            return Err(JsonError::InvalidNumber {
+                                value: number,
+                                position: self.position,
+                            });
+                        }
+                    };
+
+                    tokens.push(Token::Number(parsed_number));
+                }
+                'a'..='z' | 'A'..='Z' => {
+                    let mut value = String::new();
+                    value.push(character);
+
+                    while let Some(next_character) = self.peek() {
+                        if next_character.is_alphabetic() {
+                            value.push(next_character);
+                            self.advance();
+                        } else {
+                            break;
+                        }
+                    }
+
+                    match value.as_str() {
+                        "true" => tokens.push(Token::Boolean(true)),
+                        "false" => tokens.push(Token::Boolean(false)),
+                        "null" => tokens.push(Token::Null),
+                        _ => {
+                            return Err(JsonError::UnexpectedToken {
+                                expected: "true, false, or null".to_string(),
+                                found: value,
+                                position: self.position,
+                            });
+                        }
+                    }
+                }
+
+                _ => todo!(),
+            }
+        }
+
+        Ok(tokens)
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+    fn advance(&mut self) -> Option<char> {
+        let current = self.peek();
+        self.position += 1;
+        current
+    }
+
+    fn is_at_end(&self) -> bool {
+        self.position >= self.input.len()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     LeftBrace,
@@ -117,6 +210,24 @@ mod tests {
     use super::*;
     use crate::Result;
 
+    #[test]
+    fn test_tokenizer_struct_creation() {
+        let tokenizer = Tokenizer::new(r#""hello""#);
+    }
+
+    #[test]
+    fn test_tokenize_literals() -> Result<()> {
+        let mut t1 = Tokenizer::new("true");
+        assert_eq!(t1.tokenize()?, vec![Token::Boolean(true)]);
+
+        let mut t2 = Tokenizer::new("false");
+        assert_eq!(t2.tokenize()?, vec![Token::Boolean(false)]);
+
+        let mut t3 = Tokenizer::new("null");
+        assert_eq!(t3.tokenize()?, vec![Token::Null]);
+
+        Ok(())
+    }
 
     // Tests will be added here, one step at a time.
     //     #[test]
@@ -173,12 +284,14 @@ mod tests {
         assert_eq!(tokens[0], Token::String("phone: 555-1234".to_string()));
         Ok(())
     }
-    //     #[test]
-    //     fn test_number() {
-    //         let tokens = tokenize("42");
-    //         assert_eq!(tokens.len(), 1);
-    //         assert_eq!(tokens[0], Token::Number(42.0));
-    //     }
+    #[test]
+    fn test_tokenize_number() -> Result<()> {
+        let mut tokenizer = Tokenizer::new("42");
+        let tokens = tokenizer.tokenize()?;
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0], Token::Number(42.0));
+        Ok(())
+    }
     #[test]
     fn test_negative_number() -> Result<()> {
         let tokens = tokenize("-42")?;

@@ -1,7 +1,6 @@
-use crate::{JsonError, Result};
 use crate::tokenizer::{Token, tokenize};
 use crate::value::JsonValue;
-
+use crate::{JsonError, Result};
 
 pub fn parse_json(input: &str) -> Result<JsonValue> {
     let tokens = tokenize(input)?;
@@ -25,9 +24,9 @@ pub fn parse_json(input: &str) -> Result<JsonValue> {
             Token::Boolean(b) => Ok(JsonValue::Boolean(*b)),
             Token::Null => Ok(JsonValue::Null),
             _ => Err(JsonError::UnexpectedToken {
-                    expected: "JSON value".to_string(),
-                    found: format!("{:?}", tokens[0]),
-                    position: 0,
+                expected: "JSON value".to_string(),
+                found: format!("{:?}", tokens[0]),
+                position: 0,
             }),
         },
     }
