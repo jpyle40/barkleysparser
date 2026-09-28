@@ -1,11 +1,5 @@
-// Week 2: Custom error type for JSON parsing
 use std::fmt;
 
-// TODO: Define your JsonError enum here
-// Hint: You need variants for:
-// - UnexpectedToken { expected: String, found: String, position: usize }
-// - UnexpectedEndOfInput { expected: String, position: usize }
-// - InvalidNumber { value: String, position: usize }
 #[derive(Debug, Clone, PartialEq)]
 pub enum JsonError {
     UnexpectedToken {
@@ -23,7 +17,6 @@ pub enum JsonError {
     },
 }
 
-// TODO: Implement Display trait
 impl fmt::Display for JsonError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -56,14 +49,12 @@ impl fmt::Display for JsonError {
     }
 }
 
-// TODO: Implement Error trait
 impl std::error::Error for JsonError {}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    // Tests will be added at each step below.
     #[test]
     fn test_error_creation() {
         let error = JsonError::UnexpectedToken {
@@ -72,7 +63,6 @@ mod tests {
             position: 5,
         };
 
-        //Error should be Debug printable
         assert!(format!("{:?}", error).contains("UnexpectedToken"));
     }
     #[test]
@@ -93,7 +83,6 @@ mod tests {
             position: 0,
         };
 
-        //All variants should be Debug-printable
         assert!(!format!("{:?}", token_error).is_empty());
         assert!(!format!("{:?}", eof_error).is_empty());
         assert!(!format!("{:?}", num_error).is_empty());
