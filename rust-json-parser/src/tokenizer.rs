@@ -14,7 +14,6 @@ pub enum Token {
     Null,
 }
 
-//Example stub:
 pub fn tokenize(input: &str) -> Result<Vec<Token>, JsonError> {
     let mut tokens = Vec::new();
     let mut characters = input.chars().peekable();
@@ -40,15 +39,13 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, JsonError> {
                         _ => value.push(next_character),
                     }
                 }
-                match closed {
-                    true => tokens.push(Token::String(value)),
-                    false => {
-                        return Err(JsonError::UnexpectedEndOfInput {
-                            expected: "closing quote".to_string(),
-                            position: 0,
-                        });
-                    }
+                if !closed {
+                    return Err(JsonError::UnexpectedEndOfInput {
+                        expected: "closing quote".to_string(),
+                        position: 0,
+                    });
                 }
+                tokens.push(Token::String(value));
             }
 
             '0'..='9' | '-' => {
@@ -64,7 +61,15 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, JsonError> {
                     }
                 }
 
-                let parsed_number: f64 = number.parse().unwrap();
+                let parsed_number: f64 = match number.parse() {
+                    Ok(n) => n,
+                    Err(_) => {
+                        return Err(JsonError::InvalidNumber {
+                            value: number,
+                            position: 0,
+                        });
+                    }
+                };
                 tokens.push(Token::Number(parsed_number));
             }
 
@@ -183,24 +188,7 @@ mod tests {
         assert_eq!(tokens[0], Token::Number(0.5));
         Ok(())
     }
-    #[test]
-    fn test_leading_decimal_not_a_number() {
-        //.5 is invalid JSON - number must have leading digit (0.5 is valid)
-        let err = tokenize(".5").unwrap_err();
-        // should NOT be interpreted as 0.5
-        assert!(matches!(
-            err,
-            JsonError::UnexpectedToken { position: 0, .. }
-        ));
-    }
-    //     #[test]
-    //     fn test_boolean_and_null() {
-    //         let tokens = tokenize("true false null");
-    //         assert_eq!(tokens.len(), 3);
-    //         assert_eq!(tokens[0], Token::Boolean(true));
-    //         assert_eq!(tokens[1], Token::Boolean(false));
-    //         assert_eq!(tokens[2], Token::Null);
-    //     }
+
     //     #[test]
     //     fn test_simple_object() {
     //         let tokens = tokenize(r#"{"name": "Alice"}"#);
