@@ -1,8 +1,7 @@
-use crate::error::JsonError;
+use crate::{JsonError, Result};
 use crate::tokenizer::{Token, tokenize};
 use crate::value::JsonValue;
 
-type Result<T> = std::result::Result<T, JsonError>;
 
 pub fn parse_json(input: &str) -> Result<JsonValue> {
     let tokens = tokenize(input)?;
@@ -25,7 +24,11 @@ pub fn parse_json(input: &str) -> Result<JsonValue> {
             Token::Number(n) => Ok(JsonValue::Number(*n)),
             Token::Boolean(b) => Ok(JsonValue::Boolean(*b)),
             Token::Null => Ok(JsonValue::Null),
-            _ => todo!(),
+            _ => Err(JsonError::UnexpectedToken {
+                    expected: "JSON value".to_string(),
+                    found: format!("{:?}", tokens[0]),
+                    position: 0,
+            }),
         },
     }
 }

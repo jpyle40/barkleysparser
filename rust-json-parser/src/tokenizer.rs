@@ -90,7 +90,13 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, JsonError> {
                     "true" => tokens.push(Token::Boolean(true)),
                     "false" => tokens.push(Token::Boolean(false)),
                     "null" => tokens.push(Token::Null),
-                    _ => println!("Found a unknown word: {:?}", value),
+                    _ => {
+                        return Err(JsonError::UnexpectedToken {
+                            expected: "true, false, or null".to_string(),
+                            found: value,
+                            position: 0,
+                        });
+                    }
                 }
             }
             ' ' | '\n' | '\t' | '\r' => {}
@@ -109,9 +115,8 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, JsonError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::error::JsonError;
+    use crate::Result;
 
-    type Result<T> = std::result::Result<T, JsonError>;
 
     // Tests will be added here, one step at a time.
     //     #[test]
