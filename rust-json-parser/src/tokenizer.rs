@@ -20,6 +20,27 @@ impl Tokenizer {
             };
 
             match character {
+                '"' => {
+                    let mut value = String::new();
+                    let mut closed = false;
+
+                    while let Some(next_character) = self.advance() {
+                        match next_character {
+                            '"' => {
+                                closed = true;
+                                break;
+                            }
+                            _ => value.push(next_character),
+                        }
+                    }
+                    if !closed {
+                        return Err(JsonError::UnexpectedEndOfInput {
+                            expected: "Closing quote".to_string(),
+                            position: self.position,
+                        });
+                    }
+                    tokens.push(Token::String(value));
+                }
                 '0'..='9' | '-' => {
                     let mut number = String::new();
                     number.push(character);
@@ -46,6 +67,7 @@ impl Tokenizer {
                     tokens.push(Token::Number(parsed_number));
                 }
                 'a'..='z' | 'A'..='Z' => {
+                    let start_position = self.position - 1; 
                     let mut value = String::new();
                     value.push(character);
 
@@ -66,11 +88,12 @@ impl Tokenizer {
                             return Err(JsonError::UnexpectedToken {
                                 expected: "true, false, or null".to_string(),
                                 found: value,
-                                position: self.position,
+                                position: start_position,
                             });
                         }
                     }
                 }
+                    ' ' | '\n' | '\t' | '\r' => {}
 
                 _ => todo!(),
             }
@@ -228,6 +251,13 @@ mod tests {
 
         Ok(())
     }
+    #[test]
+    fn test_tokenize_simple_string() -> Result<()> {
+        let mut tokenizer = Tokenizer::new(r#""hello""#);
+        let tokens = tokenizer.tokenize()?;
+        assert_eq!(tokens, vec![Token::String("hello".to_string())]);
+        Ok(())
+    }
 
     // Tests will be added here, one step at a time.
     //     #[test]
@@ -350,5 +380,36 @@ mod tests {
             }
             other => panic!("expected UnexpectedEndOfInput, got {:?}", other),
         }
+    }
+    #[test]
+    fn test_tokenizer_multiple_tokens() -> Result<()> {
+        let mut tokenizer = Tokenizer::new("123 456");
+        let tokens = tokenizer.tokenize()?;
+        assert_eq!(tokens.len(), 2);
+        Ok(())
+    }
+    #[test]
+    fn test_tokenize_negative_number() -> Result<()> {
+        let mut tokenizer = Tokenizer::new("-3.14");
+        let tokens = tokenizer.tokenize()?;
+        assert_eq!(tokens, vec![Token::Number(-3.14)]);
+        Ok(())
+    }
+    #[test]
+    fn test_invalid_keyword_error_position_points_to_start() -> Result<()> {
+        let input = "   xyz";
+        let mut tokenizer = Tokenizer::new(input);
+        let err = tokenizer.tokenize().unwrap_err();
+
+        match err {
+            JsonError::UnexpectedToken { position, .. } => {
+                assert_eq!(
+                    position, 3,
+                    "error position should point to the start of 'xyz'c (index 3), not past it"
+                );
+            }
+            other => panic!("expected UnexpectedToken, got {:?}", other),
+        }
+        Ok(())
     }
 }
