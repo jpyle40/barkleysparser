@@ -30,6 +30,14 @@ impl Tokenizer {
                                 closed = true;
                                 break;
                             }
+                            '\\' => match self.advance() {
+                                Some('n') => value.push('\n'),
+                                Some(other) => {
+                                    value.push('\\');
+                                    value.push(other);
+                                }
+                                None => value.push('\\'),
+                            },
                             _ => value.push(next_character),
                         }
                     }
@@ -67,7 +75,7 @@ impl Tokenizer {
                     tokens.push(Token::Number(parsed_number));
                 }
                 'a'..='z' | 'A'..='Z' => {
-                    let start_position = self.position - 1; 
+                    let start_position = self.position - 1;
                     let mut value = String::new();
                     value.push(character);
 
@@ -93,7 +101,7 @@ impl Tokenizer {
                         }
                     }
                 }
-                    ' ' | '\n' | '\t' | '\r' => {}
+                ' ' | '\n' | '\t' | '\r' => {}
 
                 _ => todo!(),
             }
@@ -410,6 +418,13 @@ mod tests {
             }
             other => panic!("expected UnexpectedToken, got {:?}", other),
         }
+        Ok(())
+    }
+    #[test]
+    fn test_escape_newline() -> Result<()> {
+        let mut tokenizer = Tokenizer::new(r#""hello\nworld""#);
+        let tokens = tokenizer.tokenize()?;
+        assert_eq!(tokens, vec![Token::String("hello\nworld".to_string())]);
         Ok(())
     }
 }
