@@ -1,6 +1,23 @@
 use crate::tokenizer::{Token, tokenize};
 use crate::value::JsonValue;
 use crate::{JsonError, Result};
+use crate::tokenizer::Tokenizer;
+
+pub struct JsonParser {
+    tokens: Vec<Token>,
+    position: usize,
+}
+
+impl JsonParser {
+    pub fn new(input: &str) -> Result<Self> {
+        let mut tokenizer = Tokenizer::new(input);
+        let tokens = tokenizer.tokenize()?;
+        Ok(Self {
+            tokens, 
+            position: 0,
+        })
+    }
+}
 
 pub fn parse_json(input: &str) -> Result<JsonValue> {
     let tokens = tokenize(input)?;
@@ -115,5 +132,10 @@ mod tests {
             Err(JsonError::UnexpectedToken { .. }) => {} // Expected
             _ => panic!("Expected UnexpectedToken error"),
         }
+    }
+    #[test]
+    fn test_parser_creation() {
+        let parser = JsonParser::new("42");
+        assert!(parser.is_ok());
     }
 }
