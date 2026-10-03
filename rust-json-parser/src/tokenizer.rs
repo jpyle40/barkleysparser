@@ -45,7 +45,7 @@ impl Tokenizer {
                                 }
                                 Some(other) => {
                                     return Err(JsonError::InvalidEscape {
-                                        character: other,
+                                        char: other,
                                         position: self.position - 1,
                                     });
                                 }
@@ -131,13 +131,13 @@ impl Tokenizer {
                 Some(c) if c.is_ascii_hexdigit() => hex.push(c),
                 Some(c) => {
                     return Err(JsonError::InvalidUnicode {
-                        value: c.to_string(),
+                        sequence: c.to_string(),
                         position: self.position - 1,
                     });
                 }
                 None => {
                     return Err(JsonError::InvalidUnicode {
-                        value: hex,
+                        sequence: hex,
                         position: self.position,
                     });
                 }

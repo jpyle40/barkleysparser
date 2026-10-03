@@ -16,14 +16,13 @@ pub enum JsonError {
         position: usize,
     },
     InvalidEscape {
-        character: char,
+        char: char,
         position: usize,
     },
     InvalidUnicode {
-        value: String,
+        sequence: String,
         position: usize,
     },
-
 }
 
 impl fmt::Display for JsonError {
@@ -54,26 +53,18 @@ impl fmt::Display for JsonError {
                     position, value
                 )
             }
-            JsonError::InvalidEscape {
-                character,
-                position,
-            } => {
+            JsonError::InvalidEscape { char, position } => {
                 write!(
                     f,
                     "Invalid escape character '{}' at position {}",
-                    character,
-                    position
+                    char, position
                 )
             }
-            JsonError::InvalidUnicode {
-                value,
-                position,
-            } => {
+            JsonError::InvalidUnicode { sequence, position } => {
                 write!(
                     f,
-                    "Invalid escape value '{}' at postion {}",
-                    value,
-                    position
+                    "Invalid Unicode sequence '{}' at postion {}",
+                    sequence, position
                 )
             }
         }
@@ -130,5 +121,32 @@ mod tests {
         assert!(message.contains("position 0"));
         assert!(message.contains("valid JSON"));
         assert!(message.contains("@"));
+    }
+    #[test]
+    fn test_invalid_escape_display() {
+        let err = JsonError::InvalidEscape {
+            char: 'q',
+            position: 5,
+        };
+        let msg = format!("{}", err);
+        assert!(msg.contains("escape"));
+        assert!(msg.contains("q"));
+    }
+    #[test]
+    fn test_invalid_unicode_display() {
+        let err = JsonError::InvalidUnicode {
+            sequence: "00GG".to_string(),
+            position: 3,
+        };
+        let msg = format!("{}", err);
+        assert!(msg.contains("unicode") || msg.contains("Unicode"));
+    }
+    #[test]
+    fn test_error_is_std_error() {
+        let err = JsonError::InvalidEscape {
+            char: 'x',
+            position: 0,
+        };
+        let _: &dyn std::error::Error = &err;
     }
 }
