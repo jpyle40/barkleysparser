@@ -226,4 +226,43 @@ mod tests {
         };
         assert!(result.is_err());
     }
+    #[test]
+    fn test_parse_string_with_newline() -> Result<()> {
+        let mut parser = JsonParser::new(r#""hello\nworld""#)?;
+        let value = parser.parse()?;
+        assert_eq!(value, JsonValue::String("hello\nworld".to_string()));
+        Ok(())
+    }
+    #[test]
+    fn test_parse_string_with_unicode() -> Result<()> {
+        let mut parser = JsonParser::new(r#""\u0048\u0065\u006c\u006c\u006f""#)?;
+        let value = parser.parse()?;
+        assert_eq!(value, JsonValue::String("Hello".to_string()));
+        Ok(())
+    }
+    #[test]
+    fn test_parse_complex_escapes() -> Result<()> {
+        let mut parser = JsonParser::new(r#""line1\nline2\t\"quoted\"\u0021""#)?;
+        let value = parser.parse()?;
+        assert_eq!(
+            value,
+            JsonValue::String("line1\nline2\t\"quoted\"!".to_string())
+        );
+        Ok(())
+    }
+    #[test]
+    fn test_parse_string_with_tab() -> Result<()> {
+        let mut parser = JsonParser::new(r#""col1\tcol2""#)?;
+        let value = parser.parse()?;
+        assert_eq!(value, JsonValue::String("col1\tcol2".to_string()));
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_string_with_quotes() -> Result<()> {
+        let mut parser = JsonParser::new(r#""say \"hi\"""#)?;
+        let value = parser.parse()?;
+        assert_eq!(value, JsonValue::String("say \"hi\"".to_string()));
+        Ok(())
+    }
 }
