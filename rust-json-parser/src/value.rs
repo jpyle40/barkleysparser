@@ -33,6 +33,30 @@ impl JsonValue {
             _ => None,
         }
     }
+    pub fn as_array(&self) -> Option<&Vec<JsonValue>> {
+        match self {
+            JsonValue::Array(vec_value) => Some(vec_value),
+            _ => None,
+        }
+    }
+    pub fn as_object(&self) -> Option<&HashMap<String, JsonValue>> {
+        match self {
+            JsonValue::Object(hashmap_value) => Some(hashmap_value),
+            _ => None,
+        }
+    }
+    pub fn get(&self, key: &str) -> Option<&JsonValue> {
+        match self {
+            JsonValue::Object(values) => values.get(key),
+            _ => None,
+        }
+    }
+    pub fn get_index(&self, index: usize) -> Option<&JsonValue> {
+        match self {
+            JsonValue::Array(values) => values.get(index),
+            _ => None,
+        }
+    }
 }
 
 #[cfg(test)]
