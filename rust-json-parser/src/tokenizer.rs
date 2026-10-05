@@ -21,108 +21,121 @@ impl Tokenizer {
 
             match character {
                 '"' => {
-                    let mut value = String::new();
-                    let mut closed = false;
-
-                    while let Some(next_character) = self.advance() {
-                        match next_character {
-                            '"' => {
-                                closed = true;
-                                break;
-                            }
-                            '\\' => match self.advance() {
-                                Some('n') => value.push('\n'),
-                                Some('t') => value.push('\t'),
-                                Some('"') => value.push('\"'),
-                                Some('\\') => value.push('\\'),
-                                Some('/') => value.push('/'),
-                                Some('r') => value.push('\r'),
-                                Some('b') => value.push('\u{0008}'),
-                                Some('f') => value.push('\u{000C}'),
-                                Some('u') => {
-                                    let character = self.read_unicode_escape()?;
-                                    value.push(character);
-                                }
-                                Some(other) => {
-                                    return Err(JsonError::InvalidEscape {
-                                        char: other,
-                                        position: self.position - 1,
-                                    });
-                                }
-                                None => value.push('\\'),
-                            },
-                            _ => value.push(next_character),
-                        }
-                    }
-                    if !closed {
-                        return Err(JsonError::UnexpectedEndOfInput {
-                            expected: "Closing quote".to_string(),
-                            position: self.position,
-                        });
-                    }
+                    let value = self.read_string()?;
                     tokens.push(Token::String(value));
                 }
                 '0'..='9' | '-' => {
-                    let mut number = String::new();
-                    number.push(character);
-
-                    while let Some(next_character) = self.peek() {
-                        if next_character.is_ascii_digit() || next_character == '.' {
-                            number.push(next_character);
-                            self.advance();
-                        } else {
-                            break;
-                        }
-                    }
-
-                    let parsed_number: f64 = match number.parse() {
-                        Ok(n) => n,
-                        Err(_) => {
-                            return Err(JsonError::InvalidNumber {
-                                value: number,
-                                position: self.position,
-                            });
-                        }
-                    };
-
-                    tokens.push(Token::Number(parsed_number));
+                    let number = self.read_number(character)?;
+                    tokens.push(Token::Number(number));
                 }
                 'a'..='z' | 'A'..='Z' => {
-                    let start_position = self.position - 1;
-                    let mut value = String::new();
-                    value.push(character);
-
-                    while let Some(next_character) = self.peek() {
-                        if next_character.is_alphabetic() {
-                            value.push(next_character);
-                            self.advance();
-                        } else {
-                            break;
-                        }
-                    }
-
-                    match value.as_str() {
-                        "true" => tokens.push(Token::Boolean(true)),
-                        "false" => tokens.push(Token::Boolean(false)),
-                        "null" => tokens.push(Token::Null),
-                        _ => {
-                            return Err(JsonError::UnexpectedToken {
-                                expected: "true, false, or null".to_string(),
-                                found: value,
-                                position: start_position,
-                            });
-                        }
-                    }
+                    let token = self.read_literal(character)?;
+                    tokens.push(token);
                 }
                 ' ' | '\n' | '\t' | '\r' => {}
 
-                _ => todo!(),
+                _ => {
+                    return Err(JsonError::UnexpectedToken {
+                        expected: "valid JSON token".to_string(),
+                        found: character.to_string(),
+                        position: self.position - 1,
+                    });
+                }
             }
         }
 
         Ok(tokens)
     }
+    fn read_literal(&mut self, first_character: char) -> Result<Token, JsonError> {
+        let start_position = self.position - 1;
+        let mut value = String::new();
+        value.push(first_character);
 
+        while let Some(next_character) = self.peek() {
+            if next_character.is_alphabetic() {
+                value.push(next_character);
+                self.advance();
+            } else {
+                break;
+            }
+        }
+
+        match value.as_str() {
+            "true" => Ok(Token::Boolean(true)),
+            "false" => Ok(Token::Boolean(false)),
+            "null" => Ok(Token::Null),
+            _ => Err(JsonError::UnexpectedToken {
+                expected: "true, false, or null".to_string(),
+                found: value,
+                position: start_position,
+            }),
+        }
+    }
+    fn read_number(&mut self, first_character: char) -> Result<f64, JsonError> {
+        let mut number = String::new();
+        number.push(first_character);
+
+        while let Some(next_character) = self.peek() {
+            if next_character.is_ascii_digit() || next_character == '.' {
+                number.push(next_character);
+                self.advance();
+            } else {
+                break;
+            }
+        }
+
+        match number.parse() {
+            Ok(n) => Ok(n),
+            Err(_) => Err(JsonError::InvalidNumber {
+                value: number,
+                position: self.position,
+            }),
+        }
+    }
+    fn read_string(&mut self) -> Result<String, JsonError> {
+        let mut value = String::new();
+        let mut closed = false;
+
+        while let Some(next_character) = self.advance() {
+            match next_character {
+                '"' => {
+                    closed = true;
+                    break;
+                }
+                '\\' => match self.advance() {
+                    Some('n') => value.push('\n'),
+                    Some('t') => value.push('\t'),
+                    Some('"') => value.push('\"'),
+                    Some('\\') => value.push('\\'),
+                    Some('/') => value.push('/'),
+                    Some('r') => value.push('\r'),
+                    Some('b') => value.push('\u{0008}'),
+                    Some('f') => value.push('\u{000C}'),
+                    Some('u') => {
+                        let character = self.read_unicode_escape()?;
+                        value.push(character);
+                    }
+                    Some(other) => {
+                        return Err(JsonError::InvalidEscape {
+                            char: other,
+                            position: self.position - 1,
+                        });
+                    }
+                    None => value.push('\\'),
+                },
+                _ => value.push(next_character),
+            }
+        }
+
+        if !closed {
+            return Err(JsonError::UnexpectedEndOfInput {
+                expected: "Closing quote".to_string(),
+                position: self.position,
+            });
+        }
+
+        Ok(value)
+    }
     fn read_unicode_escape(&mut self) -> Result<char, JsonError> {
         let mut hex = String::new();
 
@@ -183,104 +196,6 @@ pub enum Token {
     Null,
 }
 
-pub fn tokenize(input: &str) -> Result<Vec<Token>, JsonError> {
-    let mut tokens = Vec::new();
-    let mut characters = input.chars().peekable();
-
-    while let Some(&character) = characters.peek() {
-        characters.next();
-        match character {
-            '{' => tokens.push(Token::LeftBrace),
-            '}' => tokens.push(Token::RightBrace),
-            ':' => tokens.push(Token::Colon),
-            ',' => tokens.push(Token::Comma),
-            '[' => tokens.push(Token::LeftBracket),
-            ']' => tokens.push(Token::RightBracket),
-            '"' => {
-                let mut value = String::new();
-                let mut closed = false;
-                while let Some(next_character) = characters.next() {
-                    match next_character {
-                        '"' => {
-                            closed = true;
-                            break;
-                        }
-                        _ => value.push(next_character),
-                    }
-                }
-                if !closed {
-                    return Err(JsonError::UnexpectedEndOfInput {
-                        expected: "closing quote".to_string(),
-                        position: 0,
-                    });
-                }
-                tokens.push(Token::String(value));
-            }
-
-            '0'..='9' | '-' => {
-                let mut number = String::new();
-                number.push(character);
-
-                while let Some(&next_character) = characters.peek() {
-                    if next_character.is_ascii_digit() || next_character == '.' {
-                        number.push(next_character);
-                        characters.next();
-                    } else {
-                        break;
-                    }
-                }
-
-                let parsed_number: f64 = match number.parse() {
-                    Ok(n) => n,
-                    Err(_) => {
-                        return Err(JsonError::InvalidNumber {
-                            value: number,
-                            position: 0,
-                        });
-                    }
-                };
-                tokens.push(Token::Number(parsed_number));
-            }
-
-            'a'..='z' | 'A'..='Z' => {
-                let mut value = String::new();
-                value.push(character);
-
-                while let Some(&next_character) = characters.peek() {
-                    if next_character.is_alphabetic() {
-                        value.push(next_character);
-                        characters.next();
-                    } else {
-                        break;
-                    }
-                }
-
-                match value.as_str() {
-                    "true" => tokens.push(Token::Boolean(true)),
-                    "false" => tokens.push(Token::Boolean(false)),
-                    "null" => tokens.push(Token::Null),
-                    _ => {
-                        return Err(JsonError::UnexpectedToken {
-                            expected: "true, false, or null".to_string(),
-                            found: value,
-                            position: 0,
-                        });
-                    }
-                }
-            }
-            ' ' | '\n' | '\t' | '\r' => {}
-            _ => {
-                return Err(JsonError::UnexpectedToken {
-                    expected: "valid JSON token".to_string(),
-                    found: character.to_string(),
-                    position: 0,
-                });
-            }
-        }
-    }
-    Ok(tokens)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -288,7 +203,7 @@ mod tests {
 
     #[test]
     fn test_tokenizer_struct_creation() {
-        let tokenizer = Tokenizer::new(r#""hello""#);
+        let _tokenizer = Tokenizer::new(r#""hello""#);
     }
 
     #[test]
@@ -338,7 +253,8 @@ mod tests {
     #[test]
     fn test_empty_string() -> Result<()> {
         //Outer boundary: adjacent quotes with no inner content
-        let tokens = tokenize(r#""""#)?;
+        let mut tokenizer = Tokenizer::new(r#""""#);
+        let tokens = tokenizer.tokenize()?;
         assert_eq!(tokens.len(), 1);
         assert_eq!(tokens[0], Token::String("".to_string()));
         Ok(())
@@ -346,7 +262,8 @@ mod tests {
     #[test]
     fn test_string_containing_json_special_chars() -> Result<()> {
         //Inner handing: JSON delimiters inside strings don't break tokenization
-        let tokens = tokenize(r#""{key: value}""#)?;
+        let mut tokenizer = Tokenizer::new(r#""{key: value}""#);
+        let tokens = tokenizer.tokenize()?;
         assert_eq!(tokens.len(), 1);
         assert_eq!(tokens[0], Token::String("{key: value}".to_string()));
         Ok(())
@@ -354,7 +271,8 @@ mod tests {
     #[test]
     fn test_string_with_keyword_like_content() -> Result<()> {
         //Inner handling: "true", "false", "null" inside strings stay as string content
-        let tokens = tokenize(r#""not true or false""#)?;
+        let mut tokenizer = Tokenizer::new(r#""not true or false""#);
+        let tokens = tokenizer.tokenize()?;
         assert_eq!(tokens.len(), 1);
         assert_eq!(tokens[0], Token::String("not true or false".to_string()));
         Ok(())
@@ -362,7 +280,8 @@ mod tests {
     #[test]
     fn test_string_with_number_like_content() -> Result<()> {
         //Inner handling: numeric content inside doesn't become number tokens
-        let tokens = tokenize(r#""phone: 555-1234""#)?;
+        let mut tokenizer = Tokenizer::new(r#""phone: 555-1234""#);
+        let tokens = tokenizer.tokenize()?;
         assert_eq!(tokens.len(), 1);
         assert_eq!(tokens[0], Token::String("phone: 555-1234".to_string()));
         Ok(())
@@ -377,14 +296,16 @@ mod tests {
     }
     #[test]
     fn test_negative_number() -> Result<()> {
-        let tokens = tokenize("-42")?;
+        let mut tokenizer = Tokenizer::new("-42");
+        let tokens = tokenizer.tokenize()?;
         assert_eq!(tokens.len(), 1);
         assert_eq!(tokens[0], Token::Number(-42.0));
         Ok(())
     }
     #[test]
     fn test_decimal_number() -> Result<()> {
-        let tokens = tokenize("0.5")?;
+        let mut tokenizer = Tokenizer::new("0.5");
+        let tokens = tokenizer.tokenize()?;
         assert_eq!(tokens.len(), 1);
         assert_eq!(tokens[0], Token::Number(0.5));
         Ok(())
@@ -426,10 +347,11 @@ mod tests {
     //   }
     #[test]
     fn test_unterminated_string() {
-        let err = tokenize(r#""missing end quote"#).unwrap_err();
+        let mut tokenizer = Tokenizer::new(r#""missing end quote"#);
+        let err = tokenizer.tokenize().unwrap_err();
         match err {
             JsonError::UnexpectedEndOfInput { position, .. } => {
-                assert_eq!(position, 0);
+                assert_eq!(position, 19);
             }
             other => panic!("expected UnexpectedEndOfInput, got {:?}", other),
         }
@@ -443,9 +365,9 @@ mod tests {
     }
     #[test]
     fn test_tokenize_negative_number() -> Result<()> {
-        let mut tokenizer = Tokenizer::new("-3.14");
+        let mut tokenizer = Tokenizer::new("-3.15");
         let tokens = tokenizer.tokenize()?;
-        assert_eq!(tokens, vec![Token::Number(-3.14)]);
+        assert_eq!(tokens, vec![Token::Number(-3.15)]);
         Ok(())
     }
     #[test]

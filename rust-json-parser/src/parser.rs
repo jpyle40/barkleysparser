@@ -1,5 +1,5 @@
+use crate::tokenizer::Token;
 use crate::tokenizer::Tokenizer;
-use crate::tokenizer::{Token, tokenize};
 use crate::value::JsonValue;
 use crate::{JsonError, Result};
 
@@ -29,13 +29,21 @@ impl JsonParser {
                 expected: "JSON value".to_string(),
                 position: self.position,
             }),
-            _ => todo!(),
+            Some(token) => Err(JsonError::UnexpectedToken {
+                expected: "JSON value".to_string(),
+                found: format!("{:?}", token),
+                position: self.position - 1,
+            }),
         }
     }
     fn advance(&mut self) -> Option<Token> {
-        let token = self.tokens.get(self.position).cloned();
-        self.position += 1;
-        token
+        if self.is_at_end() {
+            None
+        } else {
+            let token = self.tokens[self.position].clone();
+            self.position += 1;
+            Some(token)
+        }
     }
     fn is_at_end(&self) -> bool {
         self.position >= self.tokens.len()
@@ -43,35 +51,8 @@ impl JsonParser {
 }
 
 pub fn parse_json(input: &str) -> Result<JsonValue> {
-    let tokens = tokenize(input)?;
-
-    match tokens.is_empty() {
-        true => match input.trim().is_empty() {
-            true => Err(JsonError::UnexpectedEndOfInput {
-                expected: "JSON value".to_string(),
-                position: 0,
-            }),
-            false => Err(JsonError::UnexpectedToken {
-                expected: "JSON value".to_string(),
-                found: input.to_string(),
-                position: 0,
-            }),
-        },
-
-        false => match &tokens[0] {
-            Token::String(s) => Ok(JsonValue::String(s.clone())),
-            Token::Number(n) => Ok(JsonValue::Number(*n)),
-            Token::Boolean(b) => Ok(JsonValue::Boolean(*b)),
-            Token::Null => Ok(JsonValue::Null),
-            _ => Err(JsonError::UnexpectedToken {
-                expected: "JSON value".to_string(),
-                found: format!("{:?}", tokens[0]),
-                position: 0,
-            }),
-        },
-    }
+    JsonParser::new(input)?.parse()
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -196,9 +177,9 @@ mod tests {
     }
     #[test]
     fn test_parse_negative_number() -> Result<()> {
-        let mut parser = JsonParser::new("-3.14")?;
+        let mut parser = JsonParser::new("-3.15")?;
         let value = parser.parse()?;
-        assert_eq!(value, JsonValue::Number(-3.14));
+        assert_eq!(value, JsonValue::Number(-3.15));
         Ok(())
     }
     #[test]
