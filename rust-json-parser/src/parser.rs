@@ -27,7 +27,7 @@ impl JsonParser {
 
             None => Err(JsonError::UnexpectedEndOfInput {
                 expected: "JSON value".to_string(),
-                position: self.position,
+                position: self.position.saturating_sub(1),
             }),
             Some(token) => Err(JsonError::UnexpectedToken {
                 expected: "JSON value".to_string(),
@@ -37,16 +37,9 @@ impl JsonParser {
         }
     }
     fn advance(&mut self) -> Option<Token> {
-        if self.is_at_end() {
-            None
-        } else {
-            let token = self.tokens[self.position].clone();
-            self.position += 1;
-            Some(token)
-        }
-    }
-    fn is_at_end(&self) -> bool {
-        self.position >= self.tokens.len()
+        let token = self.tokens.get(self.position).cloned();
+        self.position += 1;
+        token
     }
 }
 
