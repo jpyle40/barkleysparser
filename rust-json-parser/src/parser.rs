@@ -67,7 +67,11 @@ impl JsonParser {
                 self.advance();
                 continue;
             }
-            todo!()
+            return Err(JsonError::UnexpectedToken {
+                expected: "comma or ]".to_string(),
+                found: format!("{:?}", self.peek()),
+                position: self.position,
+            });
         }
     }
     fn peek(&self) -> Option<&Token> {
