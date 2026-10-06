@@ -2,6 +2,7 @@ use crate::tokenizer::Token;
 use crate::tokenizer::Tokenizer;
 use crate::value::JsonValue;
 use crate::{JsonError, Result};
+use std::collections::HashMap;
 
 pub struct JsonParser {
     tokens: Vec<Token>,
@@ -30,6 +31,7 @@ impl JsonParser {
             Some(Token::Boolean(b)) => Ok(JsonValue::Boolean(b)),
             Some(Token::Null) => Ok(JsonValue::Null),
             Some(Token::LeftBracket) => self.parse_array(),
+            Some(Token::LeftBrace) => self.parse_object(),
 
             None => Err(JsonError::UnexpectedEndOfInput {
                 expected: "JSON value".to_string(),
@@ -74,6 +76,42 @@ impl JsonParser {
             });
         }
     }
+    fn parse_object(&mut self) -> Result<JsonValue> {
+        if matches!(self.peek(), Some(Token::RightBrace)) {
+            self.advance();
+            return Ok(JsonValue::Object(HashMap::new()));
+        }
+
+        let mut members = HashMap::new();
+
+        loop {
+            let key = match self.advance() {
+                Some(Token::String(key)) => key,
+                _ => todo!(),
+            };
+            if !matches!(self.advance(), Some(Token::Colon)) {
+                todo!()
+            }
+            let value = self.parse_value()?;
+            members.insert(key, value);
+
+            if matches!(self.peek(), Some(Token::RightBrace)) {
+                self.advance();
+                return Ok(JsonValue::Object(members));
+            }
+            if matches!(self.peek(), Some(Token::Comma)) {
+                self.advance();
+                continue;
+            }
+
+            return Err(JsonError::UnexpectedToken {
+                expected: "comma or }".to_string(),
+                found: format!("{:?}", self.peek()),
+                position: self.position,
+            });
+        }
+    }
+
     fn peek(&self) -> Option<&Token> {
         self.tokens.get(self.position)
     }
@@ -343,6 +381,58 @@ mod tests {
         let value = parser.parse()?;
         assert_eq!(value.get_index(1), Some(&JsonValue::Number(20.0)));
         assert_eq!(value.get_index(5), None);
+        Ok(())
+    }
+    #[test]
+    fn test_parse_empty_object() -> Result<()> {
+        let mut parser = JsonParser::new("{}")?;
+        let value = parser.parse()?;
+        assert_eq!(value, JsonValue::Object(HashMap::new()));
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_object_single_key() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"key": "value"}"#)?;
+        let value = parser.parse()?;
+        let mut expected = HashMap::new();
+        expected.insert("key".to_string(), JsonValue::String("value".to_string()));
+        assert_eq!(value, JsonValue::Object(expected));
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_object_multiple_keys() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"name": "Alice", "age": 30}"#)?;
+        let value = parser.parse()?;
+        if let JsonValue::Object(obj) = value {
+            assert_eq!(
+                obj.get("name"),
+                Some(&JsonValue::String("Alice".to_string()))
+            );
+            assert_eq!(obj.get("age"), Some(&JsonValue::Number(30.0)));
+        } else {
+            panic!("Expected object");
+        }
+        Ok(())
+    }
+    #[test]
+    fn test_object_accessor() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"name": "test"}"#)?;
+        let value = parser.parse()?;
+        assert_eq!(value.as_object().map(HashMap::len), Some(1));
+        Ok(())
+    }
+
+    #[test]
+    fn test_object_get() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"name": "Alice", "age": 30}"#)?;
+        let value = parser.parse()?;
+        assert_eq!(
+            value.get("name"),
+            Some(&JsonValue::String("Alice".to_string()))
+        );
+        assert_eq!(value.get("missing"), None);
         Ok(())
     }
 }

@@ -23,6 +23,9 @@ impl Tokenizer {
                 '[' => tokens.push(Token::LeftBracket),
                 ']' => tokens.push(Token::RightBracket),
                 ',' => tokens.push(Token::Comma),
+                '{' => tokens.push(Token::LeftBrace),
+                '}' => tokens.push(Token::RightBrace),
+                ':' => tokens.push(Token::Colon),
                 '"' => {
                     let value = self.read_string()?;
                     tokens.push(Token::String(value));
