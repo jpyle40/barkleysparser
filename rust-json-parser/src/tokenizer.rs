@@ -20,6 +20,9 @@ impl Tokenizer {
             };
 
             match character {
+                '[' => tokens.push(Token::LeftBracket),
+                ']' => tokens.push(Token::RightBracket),
+                ',' => tokens.push(Token::Comma),
                 '"' => {
                     let value = self.read_string()?;
                     tokens.push(Token::String(value));
