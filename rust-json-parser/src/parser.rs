@@ -87,10 +87,20 @@ impl JsonParser {
         loop {
             let key = match self.advance() {
                 Some(Token::String(key)) => key,
-                _ => todo!(),
+                other => {
+                    return Err(JsonError::UnexpectedToken {
+                        expected: "string key".to_string(),
+                        found: format!("{:?}", other),
+                        position: self.position,
+                    });
+                }
             };
             if !matches!(self.advance(), Some(Token::Colon)) {
-                todo!()
+                return Err(JsonError::UnexpectedToken {
+                    expected: "colon".to_string(),
+                    found: "missing colon".to_string(),
+                    position: self.position,
+                });
             }
             let value = self.parse_value()?;
             members.insert(key, value);
@@ -474,7 +484,6 @@ mod tests {
         Ok(())
     }
 
-
     #[test]
     fn test_parse_array_in_object() -> Result<()> {
         let mut parser = JsonParser::new(r#"{"items": [1, 2, 3]}"#)?;
@@ -500,6 +509,69 @@ mod tests {
         } else {
             panic!("Expected array");
         }
+        Ok(())
+    }
+    #[test]
+    fn test_error_unclosed_array() -> Result<()> {
+        let mut parser = JsonParser::new("[1, 2")?;
+        let result = parser.parse();
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_error_unclosed_object() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"key": 1"#)?;
+        let result = parser.parse();
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_error_trailing_comma_array() -> Result<()> {
+        let mut parser = JsonParser::new("[1, 2,]")?;
+        let result = parser.parse();
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_error_trailing_comma_object() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"a": 1,}"#)?;
+        let result = parser.parse();
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_error_missing_colon() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"key" 1}"#)?;
+        let result = parser.parse();
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_error_invalid_key() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{123: "value"}"#)?;
+        let result = parser.parse();
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_error_missing_comma_array() -> Result<()> {
+        let mut parser = JsonParser::new("[1 2 3]")?;
+        let result = parser.parse();
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_error_missing_comma_object() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"a": 1 "b": 2}"#)?;
+        let result = parser.parse();
+        assert!(result.is_err());
         Ok(())
     }
 }
