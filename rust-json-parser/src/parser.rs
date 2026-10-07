@@ -435,4 +435,71 @@ mod tests {
         assert_eq!(value.get("missing"), None);
         Ok(())
     }
+    #[test]
+    fn test_parse_nested_arrays() -> Result<()> {
+        let mut parser = JsonParser::new("[[1, 2], [3, 4]]")?;
+        let value = parser.parse()?;
+        let expected = JsonValue::Array(vec![
+            JsonValue::Array(vec![JsonValue::Number(1.0), JsonValue::Number(2.0)]),
+            JsonValue::Array(vec![JsonValue::Number(3.0), JsonValue::Number(4.0)]),
+        ]);
+        assert_eq!(value, expected);
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_deeply_nested() -> Result<()> {
+        let mut parser = JsonParser::new("[[[1]]]")?;
+        let value = parser.parse()?;
+        let expected = JsonValue::Array(vec![JsonValue::Array(vec![JsonValue::Array(vec![
+            JsonValue::Number(1.0),
+        ])])]);
+        assert_eq!(value, expected);
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_nested_object() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"outer": {"inner": 1}}"#)?;
+        let value = parser.parse()?;
+        if let JsonValue::Object(outer) = value {
+            if let Some(JsonValue::Object(inner)) = outer.get("outer") {
+                assert_eq!(inner.get("inner"), Some(&JsonValue::Number(1.0)));
+            } else {
+                panic!("Expected nested object");
+            }
+        } else {
+            panic!("Expected object");
+        }
+        Ok(())
+    }
+
+
+    #[test]
+    fn test_parse_array_in_object() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"items": [1, 2, 3]}"#)?;
+        let value = parser.parse()?;
+        if let JsonValue::Object(obj) = value {
+            if let Some(JsonValue::Array(arr)) = obj.get("items") {
+                assert_eq!(arr.len(), 3);
+            } else {
+                panic!("Expected array");
+            }
+        } else {
+            panic!("Expected object");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_object_in_array() -> Result<()> {
+        let mut parser = JsonParser::new(r#"[{"a": 1}, {"b": 2}]"#)?;
+        let value = parser.parse()?;
+        if let JsonValue::Array(arr) = value {
+            assert_eq!(arr.len(), 2);
+        } else {
+            panic!("Expected array");
+        }
+        Ok(())
+    }
 }
