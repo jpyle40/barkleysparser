@@ -90,6 +90,7 @@ impl Tokenizer {
         }
     }
     fn read_string(&mut self) -> Result<String, JsonError> {
+        let start = self.position - 1;
         let mut value = String::new();
 
         while let Some(next_character) = self.advance() {
@@ -121,7 +122,7 @@ impl Tokenizer {
                     None => {
                         return Err(JsonError::UnexpectedEndOfInput {
                             expected: "Closing quote".to_string(),
-                            position: self.position,
+                            position: start,
                         });
                     }
                 },
@@ -132,7 +133,7 @@ impl Tokenizer {
 
         Err(JsonError::UnexpectedEndOfInput {
             expected: "Closing quote".to_string(),
-            position: self.position,
+            position: start,
         })
     }
     fn read_unicode_escape(&mut self) -> Result<char, JsonError> {
@@ -174,7 +175,6 @@ impl Tokenizer {
         self.position += 1;
         current
     }
-
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -308,47 +308,52 @@ mod tests {
         Ok(())
     }
 
-    //     #[test]
-    //     fn test_simple_object() {
-    //         let tokens = tokenize(r#"{"name": "Alice"}"#);
-    //         assert_eq!(tokens.len(), 5);
-    //         assert_eq!(tokens[0], Token::LeftBrace);
-    //         assert_eq!(tokens[1], Token::String("name".to_string()));
-    //         assert_eq!(tokens[2], Token::Colon);
-    //         assert_eq!(tokens[3], Token::String("Alice".to_string()));
-    //         assert_eq!(tokens[4], Token::RightBrace);
-    //     }
-    //     #[test]
-    //     fn test_multiple_values() {
-    //         let tokens = tokenize(r#"{"age": 30, "active": true}"#);
-    //         //Verify we have the right tokens
-    //         assert!(tokens.contains(&Token::String("age".to_string())));
-    //         assert!(tokens.contains(&Token::Number(30.0)));
-    //         assert!(tokens.contains(&Token::Comma));
-    //         assert!(tokens.contains(&Token::String("active".to_string())));
-    //         assert!(tokens.contains(&Token::Boolean(true)));
-    //     }
-    //     #[test]
-    //     fn test_empty_brackets() {
-    //         let tokens = tokenize("[]");
-    //         assert_eq!(tokens.len(), 2);
-    //         assert_eq!(tokens[0], Token::LeftBracket);
-    //         assert_eq!(tokens[1], Token::RightBracket);
-    //     }
-    //     #[test]
-    //    fn test_unterminated_string_not_be_valid() {
-    //        //input is '"hello' (open quote, never closed). It should not be
-    //        //accepted as a valid string. Fails today; passes once tokenize errors.
-    //        let tokens = tokenize("\"hello");
-    //        assert_ne!(tokens, vec![Token::String("hello".to_string())]);
-    //   }
+    #[test]
+    fn test_simple_object() -> Result<()> {
+        let mut tokenizer = Tokenizer::new(r#"{"name": "Alice"}"#);
+        let tokens = tokenizer.tokenize()?;
+        assert_eq!(tokens.len(), 5);
+        assert_eq!(tokens[0], Token::LeftBrace);
+        assert_eq!(tokens[1], Token::String("name".to_string()));
+        assert_eq!(tokens[2], Token::Colon);
+        assert_eq!(tokens[3], Token::String("Alice".to_string()));
+        assert_eq!(tokens[4], Token::RightBrace);
+
+        Ok(())
+    }
+    #[test]
+    fn test_multiple_values() -> Result<()> {
+        let mut tokenizer = Tokenizer::new(r#"{"age": 30, "active": true}"#);
+        let tokens = tokenizer.tokenize()?;
+
+        assert!(tokens.contains(&Token::String("age".to_string())));
+        assert!(tokens.contains(&Token::Number(30.0)));
+        assert!(tokens.contains(&Token::Comma));
+        assert!(tokens.contains(&Token::String("active".to_string())));
+        assert!(tokens.contains(&Token::Boolean(true)));
+        Ok(())
+    }
+    #[test]
+    fn test_empty_brackets() -> Result<()> {
+        let mut tokenizer = Tokenizer::new("[]");
+        let tokens = tokenizer.tokenize()?;
+        assert_eq!(tokens.len(), 2);
+        assert_eq!(tokens[0], Token::LeftBracket);
+        assert_eq!(tokens[1], Token::RightBracket);
+        Ok(())
+    }
+    #[test]
+    fn test_unterminated_string_not_be_valid() {
+        let mut tokenizer = Tokenizer::new("\"hello");
+        assert!(tokenizer.tokenize().is_err());
+    }
     #[test]
     fn test_unterminated_string() {
         let mut tokenizer = Tokenizer::new(r#""missing end quote"#);
         let err = tokenizer.tokenize().unwrap_err();
         match err {
             JsonError::UnexpectedEndOfInput { position, .. } => {
-                assert_eq!(position, 19);
+                assert_eq!(position, 0);
             }
             other => panic!("expected UnexpectedEndOfInput, got {:?}", other),
         }
@@ -506,5 +511,13 @@ mod tests {
         let mut tokenizer = Tokenizer::new(r#""hello\n"#);
         let result = tokenizer.tokenize();
         assert!(result.is_err());
+    }
+    #[test]
+    fn test_unterminated_string_should_not_produce_token() {
+        let err = Tokenizer::new(r#""hello"#).tokenize().unwrap_err();
+        assert!(matches!(
+            err,
+            JsonError::UnexpectedEndOfInput { position: 0, .. }
+        ));
     }
 }
