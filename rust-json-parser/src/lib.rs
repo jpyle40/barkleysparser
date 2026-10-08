@@ -5,7 +5,7 @@ mod value;
 
 pub use error::JsonError;
 pub use parser::parse_json;
-pub use tokenizer::{Token, tokenize};
+pub use tokenizer::{Token, Tokenizer};
 pub use value::JsonValue;
 
 pub type Result<T> = std::result::Result<T, JsonError>;
