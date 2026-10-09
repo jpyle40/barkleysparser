@@ -71,7 +71,7 @@ impl fmt::Display for JsonValue {
                     write!(f, "{}", value)
                 }
             }
-            JsonValue::String(value) => { 
+            JsonValue::String(value) => {
                 write!(f, "\"")?;
 
                 for ch in value.chars() {
@@ -114,8 +114,8 @@ impl fmt::Display for JsonValue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::JsonParser;
     use crate::error::JsonError;
+    use crate::parser::JsonParser;
 
     // Tests will be added at each step below.
     #[test]
@@ -184,36 +184,36 @@ mod tests {
         assert_eq!(JsonValue::Array(vec![]).to_string(), "[]");
         assert_eq!(JsonValue::Object(HashMap::new()).to_string(), "{}");
     }
-    
-        #[test]
-        fn test_display_escape_string() {
-            let value = JsonValue::String("hello\nworld".to_string());
-            assert_eq!(value.to_string(), "\"hello\\nworld\"");
-        }
-    
-        #[test]
-        fn test_display_escape_quotes() {
-            let value = JsonValue::String("say \"hi\"".to_string());
-            assert_eq!(value.to_string(), "\"say \\\"hi\\\"\"");
-        }
-    
-        #[test]
-        fn test_display_nested() -> Result<(), JsonError> {
-            let mut parser = JsonParser::new(r#"{"arr": [1, 2]}"#)?;
-            let value = parser.parse()?;
-            let output = value.to_string();
-            // Object key order may vary, so check components
-            assert!(output.contains("\"arr\""));
-            assert!(output.contains("[1,2]"));
-            Ok(())
-        }
-    
-        #[test]
-        fn test_display_nested_array() {
-            let value = JsonValue::Array(vec![JsonValue::Array(vec![
-                JsonValue::Number(1.0),
-                JsonValue::Number(2.0),
-            ])]);
-            assert_eq!(value.to_string(), "[[1,2]]");
-        }
+
+    #[test]
+    fn test_display_escape_string() {
+        let value = JsonValue::String("hello\nworld".to_string());
+        assert_eq!(value.to_string(), "\"hello\\nworld\"");
+    }
+
+    #[test]
+    fn test_display_escape_quotes() {
+        let value = JsonValue::String("say \"hi\"".to_string());
+        assert_eq!(value.to_string(), "\"say \\\"hi\\\"\"");
+    }
+
+    #[test]
+    fn test_display_nested() -> Result<(), JsonError> {
+        let mut parser = JsonParser::new(r#"{"arr": [1, 2]}"#)?;
+        let value = parser.parse()?;
+        let output = value.to_string();
+        // Object key order may vary, so check components
+        assert!(output.contains("\"arr\""));
+        assert!(output.contains("[1,2]"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_display_nested_array() {
+        let value = JsonValue::Array(vec![JsonValue::Array(vec![
+            JsonValue::Number(1.0),
+            JsonValue::Number(2.0),
+        ])]);
+        assert_eq!(value.to_string(), "[[1,2]]");
+    }
 }
