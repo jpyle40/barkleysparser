@@ -63,7 +63,7 @@ impl fmt::Display for JsonError {
             JsonError::InvalidUnicode { sequence, position } => {
                 write!(
                     f,
-                    "Invalid Unicode sequence '{}' at postion {}",
+                    "Invalid Unicode sequence '{}' at position {}",
                     sequence, position
                 )
             }
