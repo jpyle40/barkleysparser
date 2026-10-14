@@ -108,7 +108,7 @@ impl fmt::Display for JsonValue {
                         write!(f, ",")?;
                     }
 
-                    write!(f, "\"{}\":{}", key, value)?;
+                    write!(f, "{}:{}", JsonValue::String(key.clone()), value)?;
                 }
 
                 write!(f, "}}")

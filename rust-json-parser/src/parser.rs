@@ -77,31 +77,47 @@ impl JsonParser {
                 Some(Token::Comma) => {
                     continue;
                 }
-                other => {
+                Some(other) => {
                     return Err(JsonError::UnexpectedToken {
                         expected: "comma or ]".to_string(),
                         found: format!("{:?}", other),
                         position: self.position.saturating_sub(1),
                     });
                 }
+                None => {
+                    return Err(JsonError::UnexpectedEndOfInput {
+                        expected: "comma or ]".to_string(),
+                        position: self.position,
+                    });
+                }
             }
         }
     }
     fn parse_object(&mut self) -> Result<JsonValue> {
+        if self.peek().is_none() {
+            return Err(JsonError::UnexpectedEndOfInput {
+                expected: "object".to_string(),
+                position: self.position,
+            });
+        }
         if matches!(self.peek(), Some(Token::RightBrace)) {
             self.advance();
             return Ok(JsonValue::Object(HashMap::new()));
         }
-
         let mut members = HashMap::new();
-
         loop {
             let key = match self.advance() {
                 Some(Token::String(key)) => key,
-                other => {
+                Some(other) => {
                     return Err(JsonError::UnexpectedToken {
                         expected: "string key".to_string(),
                         found: format!("{:?}", other),
+                        position: self.position,
+                    });
+                }
+                None => {
+                    return Err(JsonError::UnexpectedEndOfInput {
+                        expected: "string key".to_string(),
                         position: self.position,
                     });
                 }
@@ -125,14 +141,19 @@ impl JsonParser {
                 continue;
             }
 
-            return Err(JsonError::UnexpectedToken {
-                expected: "comma or }".to_string(),
-                found: format!("{:?}", self.peek()),
-                position: self.position,
-            });
+            return match self.peek() {
+                Some(token) => Err(JsonError::UnexpectedToken {
+                    expected: "comma or }".to_string(),
+                    found: format!("{:?}", token),
+                    position: self.position,
+                }),
+                None => Err(JsonError::UnexpectedEndOfInput {
+                    expected: "comma or }".to_string(),
+                    position: self.position,
+                }),
+            };
         }
     }
-
     fn peek(&self) -> Option<&Token> {
         self.tokens.get(self.position)
     }
