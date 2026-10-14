@@ -11,33 +11,23 @@ impl Tokenizer {
             position: 0,
         }
     }
+
     pub fn tokenize(&mut self) -> Result<Vec<Token>, JsonError> {
         let mut tokens = Vec::new();
 
-        while !self.is_at_end() {
-            let Some(character) = self.advance() else {
-                break;
-            };
+        while let Some(character) = self.advance() {
+            let token = match character {
+                '"' => Token::String(self.read_string()?),
+                '0'..='9' | '-' => Token::Number(self.read_number(character)?),
+                'a'..='z' | 'A'..='Z' => self.read_literal(character)?,
 
-            match character {
-                '[' => tokens.push(Token::LeftBracket),
-                ']' => tokens.push(Token::RightBracket),
-                ',' => tokens.push(Token::Comma),
-                '{' => tokens.push(Token::LeftBrace),
-                '}' => tokens.push(Token::RightBrace),
-                ':' => tokens.push(Token::Colon),
-                '"' => {
-                    let value = self.read_string()?;
-                    tokens.push(Token::String(value));
-                }
-                '0'..='9' | '-' => {
-                    let number = self.read_number(character)?;
-                    tokens.push(Token::Number(number));
-                }
-                'a'..='z' | 'A'..='Z' => {
-                    let token = self.read_literal(character)?;
-                    tokens.push(token);
-                }
+                '{' => Token::LeftBrace,
+                '}' => Token::RightBrace,
+                '[' => Token::LeftBracket,
+                ']' => Token::RightBracket,
+                ':' => Token::Colon,
+                ',' => Token::Comma,
+
                 ' ' | '\n' | '\t' | '\r' => continue,
 
                 _ => {
@@ -47,7 +37,9 @@ impl Tokenizer {
                         position: self.position - 1,
                     });
                 }
-            }
+            };
+
+            tokens.push(token);
         }
 
         Ok(tokens)
@@ -239,35 +231,35 @@ mod tests {
         Ok(())
     }
 
-         #[test]
-         fn test_empty_braces() -> Result<()> {
-             let mut tokenizer = Tokenizer::new("{}");
-             let tokens = tokenizer.tokenize()?;
+    #[test]
+    fn test_empty_braces() -> Result<()> {
+        let mut tokenizer = Tokenizer::new("{}");
+        let tokens = tokenizer.tokenize()?;
 
-             assert_eq!(tokens.len(), 2);
-             assert_eq!(tokens[0], Token::LeftBrace);
-             assert_eq!(tokens[1], Token::RightBrace);
-             Ok(())
-         }
-    
-         #[test]
-         fn test_simple_string() -> Result<()> {
-             let mut tokenizer = Tokenizer::new(r#""hello""#);
-             let tokens = tokenizer.tokenize()?;
-             assert_eq!(tokens.len(), 1);
-             assert_eq!(tokens[0], Token::String("hello".to_string()));
-             Ok(())
-        }
-    
-         #[test]
-         fn test_tokenize_string() -> Result<()>  {
-             let mut tokenizer = Tokenizer::new(r#""hello world""#);
-             let tokens = tokenizer.tokenize()?;
-    
-             assert_eq!(tokens.len(), 1);
-             assert_eq!(tokens[0], Token::String("hello world".to_string()));
-             Ok(())
-         }
+        assert_eq!(tokens.len(), 2);
+        assert_eq!(tokens[0], Token::LeftBrace);
+        assert_eq!(tokens[1], Token::RightBrace);
+        Ok(())
+    }
+
+    #[test]
+    fn test_simple_string() -> Result<()> {
+        let mut tokenizer = Tokenizer::new(r#""hello""#);
+        let tokens = tokenizer.tokenize()?;
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0], Token::String("hello".to_string()));
+        Ok(())
+    }
+
+    #[test]
+    fn test_tokenize_string() -> Result<()> {
+        let mut tokenizer = Tokenizer::new(r#""hello world""#);
+        let tokens = tokenizer.tokenize()?;
+
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0], Token::String("hello world".to_string()));
+        Ok(())
+    }
     #[test]
     fn test_empty_string() -> Result<()> {
         //Outer boundary: adjacent quotes with no inner content
@@ -329,38 +321,38 @@ mod tests {
         Ok(())
     }
 
-         #[test]
-         fn test_simple_object() -> Result<()> {
-             let mut tokenizer = Tokenizer::new(r#"{"name": "alice"}"#);
-             let tokens = tokenizer.tokenize()?;
-             assert_eq!(tokens.len(), 5);
-             assert_eq!(tokens[0], Token::LeftBrace);
-             assert_eq!(tokens[1], Token::String("name".to_string()));
-             assert_eq!(tokens[2], Token::Colon);
-             assert_eq!(tokens[3], Token::String("alice".to_string()));
-             assert_eq!(tokens[4], Token::RightBrace);
-             Ok(())
-         }
-         #[test]
-         fn test_multiple_values() -> Result<()> {
-             let mut tokenizer = Tokenizer::new(r#"{"age": 30, "active": true}"#);
-             let tokens = tokenizer.tokenize()?; 
-             assert!(tokens.contains(&Token::String("age".to_string())));
-             assert!(tokens.contains(&Token::Number(30.0)));
-             assert!(tokens.contains(&Token::Comma));
-             assert!(tokens.contains(&Token::String("active".to_string())));
-             assert!(tokens.contains(&Token::Boolean(true)));
-             Ok(())
-         }
-         #[test]
-         fn test_empty_brackets() -> Result<()> {
-             let mut tokenizer = Tokenizer::new("[]");
-             let tokens = tokenizer.tokenize()?;
-             assert_eq!(tokens.len(), 2);
-             assert_eq!(tokens[0], Token::LeftBracket);
-             assert_eq!(tokens[1], Token::RightBracket);
-             Ok(())
-         }
+    #[test]
+    fn test_simple_object() -> Result<()> {
+        let mut tokenizer = Tokenizer::new(r#"{"name": "alice"}"#);
+        let tokens = tokenizer.tokenize()?;
+        assert_eq!(tokens.len(), 5);
+        assert_eq!(tokens[0], Token::LeftBrace);
+        assert_eq!(tokens[1], Token::String("name".to_string()));
+        assert_eq!(tokens[2], Token::Colon);
+        assert_eq!(tokens[3], Token::String("alice".to_string()));
+        assert_eq!(tokens[4], Token::RightBrace);
+        Ok(())
+    }
+    #[test]
+    fn test_multiple_values() -> Result<()> {
+        let mut tokenizer = Tokenizer::new(r#"{"age": 30, "active": true}"#);
+        let tokens = tokenizer.tokenize()?;
+        assert!(tokens.contains(&Token::String("age".to_string())));
+        assert!(tokens.contains(&Token::Number(30.0)));
+        assert!(tokens.contains(&Token::Comma));
+        assert!(tokens.contains(&Token::String("active".to_string())));
+        assert!(tokens.contains(&Token::Boolean(true)));
+        Ok(())
+    }
+    #[test]
+    fn test_empty_brackets() -> Result<()> {
+        let mut tokenizer = Tokenizer::new("[]");
+        let tokens = tokenizer.tokenize()?;
+        assert_eq!(tokens.len(), 2);
+        assert_eq!(tokens[0], Token::LeftBracket);
+        assert_eq!(tokens[1], Token::RightBracket);
+        Ok(())
+    }
     #[test]
     fn test_unterminated_string_not_be_valid() {
         let mut tokenizer = Tokenizer::new("\"hello");
