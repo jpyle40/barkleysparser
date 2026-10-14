@@ -20,7 +20,16 @@ impl JsonParser {
     }
 
     pub fn parse(&mut self) -> Result<JsonValue> {
-        self.parse_value()
+        let value = self.parse_value()?;
+
+        match self.peek() {
+            None => Ok(value),
+            Some(token) => Err(JsonError::UnexpectedToken {
+                expected: "End of input".to_string(),
+                found: format!("{:?}", token),
+                position: self.position,
+            }),
+        }
     }
 
     fn parse_value(&mut self) -> Result<JsonValue> {
@@ -61,19 +70,21 @@ impl JsonParser {
             let value = self.parse_value()?;
             elements.push(value);
 
-            if matches!(self.peek(), Some(Token::RightBracket)) {
-                self.advance();
-                return Ok(JsonValue::Array(elements));
+            match self.advance() {
+                Some(Token::RightBracket) => {
+                    return Ok(JsonValue::Array(elements));
+                }
+                Some(Token::Comma) => {
+                    continue;
+                }
+                other => {
+                    return Err(JsonError::UnexpectedToken {
+                        expected: "comma or ]".to_string(),
+                        found: format!("{:?}", other),
+                        position: self.position.saturating_sub(1),
+                    });
+                }
             }
-            if matches!(self.peek(), Some(Token::Comma)) {
-                self.advance();
-                continue;
-            }
-            return Err(JsonError::UnexpectedToken {
-                expected: "comma or ]".to_string(),
-                found: format!("{:?}", self.peek()),
-                position: self.position,
-            });
         }
     }
     fn parse_object(&mut self) -> Result<JsonValue> {

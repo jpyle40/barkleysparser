@@ -38,7 +38,7 @@ impl Tokenizer {
                     let token = self.read_literal(character)?;
                     tokens.push(token);
                 }
-                ' ' | '\n' | '\t' | '\r' => {}
+                ' ' | '\n' | '\t' | '\r' => continue,
 
                 _ => {
                     return Err(JsonError::UnexpectedToken {
@@ -99,6 +99,7 @@ impl Tokenizer {
         }
     }
     fn read_string(&mut self) -> Result<String, JsonError> {
+        let start_position = self.position - 1;
         let mut value = String::new();
         let mut closed = false;
 
@@ -127,7 +128,12 @@ impl Tokenizer {
                             position: self.position - 1,
                         });
                     }
-                    None => value.push('\\'),
+                    None => {
+                        return Err(JsonError::UnexpectedEndOfInput {
+                            expected: "escape character".to_string(),
+                            position: self.position,
+                        });
+                    }
                 },
                 _ => value.push(next_character),
             }
@@ -136,7 +142,7 @@ impl Tokenizer {
         if !closed {
             return Err(JsonError::UnexpectedEndOfInput {
                 expected: "Closing quote".to_string(),
-                position: self.position,
+                position: start_position,
             });
         }
 
@@ -344,20 +350,18 @@ mod tests {
     //         assert_eq!(tokens[0], Token::LeftBracket);
     //         assert_eq!(tokens[1], Token::RightBracket);
     //     }
-    //     #[test]
-    //    fn test_unterminated_string_not_be_valid() {
-    //        //input is '"hello' (open quote, never closed). It should not be
-    //        //accepted as a valid string. Fails today; passes once tokenize errors.
-    //        let tokens = tokenize("\"hello");
-    //        assert_ne!(tokens, vec![Token::String("hello".to_string())]);
-    //   }
+    #[test]
+    fn test_unterminated_string_not_be_valid() {
+        let mut tokenizer = Tokenizer::new("\"hello");
+        assert!(tokenizer.tokenize().is_err());
+    }
     #[test]
     fn test_unterminated_string() {
         let mut tokenizer = Tokenizer::new(r#""missing end quote"#);
         let err = tokenizer.tokenize().unwrap_err();
         match err {
             JsonError::UnexpectedEndOfInput { position, .. } => {
-                assert_eq!(position, 19);
+                assert_eq!(position, 0);
             }
             other => panic!("expected UnexpectedEndOfInput, got {:?}", other),
         }
@@ -515,5 +519,14 @@ mod tests {
         let mut tokenizer = Tokenizer::new(r#""hello\n"#);
         let result = tokenizer.tokenize();
         assert!(result.is_err());
+    }
+    #[test]
+    fn test_unterminated_string_should_not_produce_token() {
+        let err = Tokenizer::new(r#""hello"#).tokenize().unwrap_err();
+        println!("Actual error: {:?}", err);
+        assert!(matches!(
+            err,
+            JsonError::UnexpectedEndOfInput { position: 0, .. }
+        ));
     }
 }

@@ -76,9 +76,15 @@ impl fmt::Display for JsonValue {
 
                 for ch in value.chars() {
                     match ch {
-                        '\n' => write!(f, "\\n")?,
                         '"' => write!(f, "\\\"")?,
-                        _ => write!(f, "{}", ch)?,
+                        '\n' => write!(f, "\\n")?,
+                        '\\' => write!(f, "\\\\")?,
+                        '\r' => write!(f, "\\r")?,
+                        '\t' => write!(f, "\\t")?,
+                        '\u{08}' => write!(f, "\\b")?,
+                        '\u{0C}' => write!(f, "\\f")?,
+                        c if (c as u32) < 0x20 => write!(f, "\\u{:04x}", c as u32)?,
+                        c => write!(f, "{c}")?,
                     }
                 }
                 write!(f, "\"")
