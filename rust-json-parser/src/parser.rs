@@ -81,13 +81,13 @@ impl JsonParser {
                     return Err(JsonError::UnexpectedToken {
                         expected: "comma or ]".to_string(),
                         found: format!("{:?}", other),
-                        position: self.position.saturating_sub(1),
+                        position: self.position - 1,
                     });
                 }
                 None => {
                     return Err(JsonError::UnexpectedEndOfInput {
                         expected: "comma or ]".to_string(),
-                        position: self.position.saturating_sub(1),
+                        position: self.position - 1,
                     });
                 }
             }
@@ -112,13 +112,13 @@ impl JsonParser {
                     return Err(JsonError::UnexpectedToken {
                         expected: "string key".to_string(),
                         found: format!("{:?}", other),
-                        position: self.position.saturating_sub(1),
+                        position: self.position - 1,
                     });
                 }
                 None => {
                     return Err(JsonError::UnexpectedEndOfInput {
                         expected: "string key".to_string(),
-                        position: self.position.saturating_sub(1),
+                        position: self.position - 1,
                     });
                 }
             };
@@ -126,7 +126,7 @@ impl JsonParser {
                 return Err(JsonError::UnexpectedToken {
                     expected: "colon".to_string(),
                     found: "missing colon".to_string(),
-                    position: self.position.saturating_sub(1),
+                    position: self.position - 1,
                 });
             }
             let value = self.parse_value()?;
