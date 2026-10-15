@@ -520,7 +520,6 @@ mod tests {
     #[test]
     fn test_unterminated_string_should_not_produce_token() {
         let err = Tokenizer::new(r#""hello"#).tokenize().unwrap_err();
-        println!("Actual error: {:?}", err);
         assert!(matches!(
             err,
             JsonError::UnexpectedEndOfInput { position: 0, .. }

@@ -44,7 +44,7 @@ impl JsonParser {
 
             None => Err(JsonError::UnexpectedEndOfInput {
                 expected: "JSON value".to_string(),
-                position: self.position.saturating_sub(1),
+                position: self.position - 1,
             }),
             Some(token) => Err(JsonError::UnexpectedToken {
                 expected: "JSON value".to_string(),
