@@ -160,14 +160,12 @@ impl Tokenizer {
                 }
             }
         }
-        let code = u32::from_str_radix(&hex, 16).map_err(|_| JsonError::UnexpectedToken {
-            expected: "4 hexadecimal digit".to_string(),
-            found: hex.clone(),
+        let code = u32::from_str_radix(&hex, 16).map_err(|_| JsonError::InvalidUnicode {
+            sequence: hex.clone(),
             position: self.position,
         })?;
-        char::from_u32(code).ok_or(JsonError::UnexpectedToken {
-            expected: "valid Unicode character".to_string(),
-            found: hex,
+        char::from_u32(code).ok_or(JsonError::InvalidUnicode {
+            sequence: hex,
             position: self.position,
         })
     }
@@ -179,10 +177,6 @@ impl Tokenizer {
         let current = self.peek();
         self.position += 1;
         current
-    }
-
-    fn is_at_end(&self) -> bool {
-        self.position >= self.input.len()
     }
 }
 
