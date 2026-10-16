@@ -2,6 +2,7 @@ use crate::tokenizer::Token;
 use crate::tokenizer::Tokenizer;
 use crate::value::JsonValue;
 use crate::{JsonError, Result};
+use std::collections::HashMap;
 
 pub struct JsonParser {
     tokens: Vec<Token>,
@@ -17,17 +18,33 @@ impl JsonParser {
             position: 0,
         })
     }
+
     pub fn parse(&mut self) -> Result<JsonValue> {
+        let value = self.parse_value()?;
+
+        match self.peek() {
+            None => Ok(value),
+            Some(token) => Err(JsonError::UnexpectedToken {
+                expected: "End of input".to_string(),
+                found: format!("{:?}", token),
+                position: self.position,
+            }),
+        }
+    }
+
+    fn parse_value(&mut self) -> Result<JsonValue> {
         let token = self.advance();
         match token {
             Some(Token::Number(n)) => Ok(JsonValue::Number(n)),
             Some(Token::String(s)) => Ok(JsonValue::String(s)),
             Some(Token::Boolean(b)) => Ok(JsonValue::Boolean(b)),
             Some(Token::Null) => Ok(JsonValue::Null),
+            Some(Token::LeftBracket) => self.parse_array(),
+            Some(Token::LeftBrace) => self.parse_object(),
 
             None => Err(JsonError::UnexpectedEndOfInput {
                 expected: "JSON value".to_string(),
-                position: self.position.saturating_sub(1),
+                position: self.position - 1,
             }),
             Some(token) => Err(JsonError::UnexpectedToken {
                 expected: "JSON value".to_string(),
@@ -35,6 +52,110 @@ impl JsonParser {
                 position: self.position - 1,
             }),
         }
+    }
+    fn parse_array(&mut self) -> Result<JsonValue> {
+        if self.position >= self.tokens.len() {
+            return Err(JsonError::UnexpectedEndOfInput {
+                expected: "]".to_string(),
+                position: self.position,
+            });
+        }
+        if matches!(self.peek(), Some(Token::RightBracket)) {
+            self.advance();
+            return Ok(JsonValue::Array(vec![]));
+        }
+        let mut elements = Vec::new();
+
+        loop {
+            let value = self.parse_value()?;
+            elements.push(value);
+
+            match self.advance() {
+                Some(Token::RightBracket) => {
+                    return Ok(JsonValue::Array(elements));
+                }
+                Some(Token::Comma) => {
+                    continue;
+                }
+                Some(other) => {
+                    return Err(JsonError::UnexpectedToken {
+                        expected: "comma or ]".to_string(),
+                        found: format!("{:?}", other),
+                        position: self.position - 1,
+                    });
+                }
+                None => {
+                    return Err(JsonError::UnexpectedEndOfInput {
+                        expected: "comma or ]".to_string(),
+                        position: self.position - 1,
+                    });
+                }
+            }
+        }
+    }
+    fn parse_object(&mut self) -> Result<JsonValue> {
+        if self.peek().is_none() {
+            return Err(JsonError::UnexpectedEndOfInput {
+                expected: "object".to_string(),
+                position: self.position,
+            });
+        }
+        if matches!(self.peek(), Some(Token::RightBrace)) {
+            self.advance();
+            return Ok(JsonValue::Object(HashMap::new()));
+        }
+        let mut members = HashMap::new();
+        loop {
+            let key = match self.advance() {
+                Some(Token::String(key)) => key,
+                Some(other) => {
+                    return Err(JsonError::UnexpectedToken {
+                        expected: "string key".to_string(),
+                        found: format!("{:?}", other),
+                        position: self.position - 1,
+                    });
+                }
+                None => {
+                    return Err(JsonError::UnexpectedEndOfInput {
+                        expected: "string key".to_string(),
+                        position: self.position - 1,
+                    });
+                }
+            };
+            if !matches!(self.advance(), Some(Token::Colon)) {
+                return Err(JsonError::UnexpectedToken {
+                    expected: "colon".to_string(),
+                    found: "missing colon".to_string(),
+                    position: self.position - 1,
+                });
+            }
+            let value = self.parse_value()?;
+            members.insert(key, value);
+
+            if matches!(self.peek(), Some(Token::RightBrace)) {
+                self.advance();
+                return Ok(JsonValue::Object(members));
+            }
+            if matches!(self.peek(), Some(Token::Comma)) {
+                self.advance();
+                continue;
+            }
+
+            return match self.peek() {
+                Some(token) => Err(JsonError::UnexpectedToken {
+                    expected: "comma or }".to_string(),
+                    found: format!("{:?}", token),
+                    position: self.position,
+                }),
+                None => Err(JsonError::UnexpectedEndOfInput {
+                    expected: "comma or }".to_string(),
+                    position: self.position,
+                }),
+            };
+        }
+    }
+    fn peek(&self) -> Option<&Token> {
+        self.tokens.get(self.position)
     }
     fn advance(&mut self) -> Option<Token> {
         let token = self.tokens.get(self.position).cloned();
@@ -237,6 +358,245 @@ mod tests {
         let mut parser = JsonParser::new(r#""say \"hi\"""#)?;
         let value = parser.parse()?;
         assert_eq!(value, JsonValue::String("say \"hi\"".to_string()));
+        Ok(())
+    }
+    #[test]
+    fn test_parse_empty_array() -> Result<()> {
+        let mut parser = JsonParser::new("[]")?;
+        let value = parser.parse()?;
+        assert_eq!(value, JsonValue::Array(vec![]));
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_array_single() -> Result<()> {
+        let mut parser = JsonParser::new("[1]")?;
+        let value = parser.parse()?;
+        assert_eq!(value, JsonValue::Array(vec![JsonValue::Number(1.0)]));
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_array_multiple() -> Result<()> {
+        let mut parser = JsonParser::new("[1, 2, 3]")?;
+        let value = parser.parse()?;
+        let expected = JsonValue::Array(vec![
+            JsonValue::Number(1.0),
+            JsonValue::Number(2.0),
+            JsonValue::Number(3.0),
+        ]);
+        assert_eq!(value, expected);
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_array_mixed_types() -> Result<()> {
+        let mut parser = JsonParser::new(r#"[1, "two", true, null]"#)?;
+        let value = parser.parse()?;
+        let expected = JsonValue::Array(vec![
+            JsonValue::Number(1.0),
+            JsonValue::String("two".to_string()),
+            JsonValue::Boolean(true),
+            JsonValue::Null,
+        ]);
+        assert_eq!(value, expected);
+        Ok(())
+    }
+    #[test]
+    fn test_array_accessor() -> Result<()> {
+        let mut parser = JsonParser::new("[1, 2, 3]")?;
+        let value = parser.parse()?;
+        assert_eq!(value.as_array().map(Vec::len), Some(3));
+        Ok(())
+    }
+
+    #[test]
+    fn test_array_get_index() -> Result<()> {
+        let mut parser = JsonParser::new("[10, 20, 30]")?;
+        let value = parser.parse()?;
+        assert_eq!(value.get_index(1), Some(&JsonValue::Number(20.0)));
+        assert_eq!(value.get_index(5), None);
+        Ok(())
+    }
+    #[test]
+    fn test_parse_empty_object() -> Result<()> {
+        let mut parser = JsonParser::new("{}")?;
+        let value = parser.parse()?;
+        assert_eq!(value, JsonValue::Object(HashMap::new()));
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_object_single_key() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"key": "value"}"#)?;
+        let value = parser.parse()?;
+        let mut expected = HashMap::new();
+        expected.insert("key".to_string(), JsonValue::String("value".to_string()));
+        assert_eq!(value, JsonValue::Object(expected));
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_object_multiple_keys() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"name": "Alice", "age": 30}"#)?;
+        let value = parser.parse()?;
+        if let JsonValue::Object(obj) = value {
+            assert_eq!(
+                obj.get("name"),
+                Some(&JsonValue::String("Alice".to_string()))
+            );
+            assert_eq!(obj.get("age"), Some(&JsonValue::Number(30.0)));
+        } else {
+            panic!("Expected object");
+        }
+        Ok(())
+    }
+    #[test]
+    fn test_object_accessor() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"name": "test"}"#)?;
+        let value = parser.parse()?;
+        assert_eq!(value.as_object().map(HashMap::len), Some(1));
+        Ok(())
+    }
+
+    #[test]
+    fn test_object_get() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"name": "Alice", "age": 30}"#)?;
+        let value = parser.parse()?;
+        assert_eq!(
+            value.get("name"),
+            Some(&JsonValue::String("Alice".to_string()))
+        );
+        assert_eq!(value.get("missing"), None);
+        Ok(())
+    }
+    #[test]
+    fn test_parse_nested_arrays() -> Result<()> {
+        let mut parser = JsonParser::new("[[1, 2], [3, 4]]")?;
+        let value = parser.parse()?;
+        let expected = JsonValue::Array(vec![
+            JsonValue::Array(vec![JsonValue::Number(1.0), JsonValue::Number(2.0)]),
+            JsonValue::Array(vec![JsonValue::Number(3.0), JsonValue::Number(4.0)]),
+        ]);
+        assert_eq!(value, expected);
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_deeply_nested() -> Result<()> {
+        let mut parser = JsonParser::new("[[[1]]]")?;
+        let value = parser.parse()?;
+        let expected = JsonValue::Array(vec![JsonValue::Array(vec![JsonValue::Array(vec![
+            JsonValue::Number(1.0),
+        ])])]);
+        assert_eq!(value, expected);
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_nested_object() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"outer": {"inner": 1}}"#)?;
+        let value = parser.parse()?;
+        if let JsonValue::Object(outer) = value {
+            if let Some(JsonValue::Object(inner)) = outer.get("outer") {
+                assert_eq!(inner.get("inner"), Some(&JsonValue::Number(1.0)));
+            } else {
+                panic!("Expected nested object");
+            }
+        } else {
+            panic!("Expected object");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_array_in_object() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"items": [1, 2, 3]}"#)?;
+        let value = parser.parse()?;
+        if let JsonValue::Object(obj) = value {
+            if let Some(JsonValue::Array(arr)) = obj.get("items") {
+                assert_eq!(arr.len(), 3);
+            } else {
+                panic!("Expected array");
+            }
+        } else {
+            panic!("Expected object");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_object_in_array() -> Result<()> {
+        let mut parser = JsonParser::new(r#"[{"a": 1}, {"b": 2}]"#)?;
+        let value = parser.parse()?;
+        if let JsonValue::Array(arr) = value {
+            assert_eq!(arr.len(), 2);
+        } else {
+            panic!("Expected array");
+        }
+        Ok(())
+    }
+    #[test]
+    fn test_error_unclosed_array() -> Result<()> {
+        let mut parser = JsonParser::new("[1, 2")?;
+        let result = parser.parse();
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_error_unclosed_object() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"key": 1"#)?;
+        let result = parser.parse();
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_error_trailing_comma_array() -> Result<()> {
+        let mut parser = JsonParser::new("[1, 2,]")?;
+        let result = parser.parse();
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_error_trailing_comma_object() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"a": 1,}"#)?;
+        let result = parser.parse();
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_error_missing_colon() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"key" 1}"#)?;
+        let result = parser.parse();
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_error_invalid_key() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{123: "value"}"#)?;
+        let result = parser.parse();
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_error_missing_comma_array() -> Result<()> {
+        let mut parser = JsonParser::new("[1 2 3]")?;
+        let result = parser.parse();
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_error_missing_comma_object() -> Result<()> {
+        let mut parser = JsonParser::new(r#"{"a": 1 "b": 2}"#)?;
+        let result = parser.parse();
+        assert!(result.is_err());
         Ok(())
     }
 }

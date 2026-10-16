@@ -11,6 +11,7 @@ impl Tokenizer {
             position: 0,
         }
     }
+
     pub fn tokenize(&mut self) -> Result<Vec<Token>, JsonError> {
         let mut tokens = Vec::new();
 
@@ -90,13 +91,16 @@ impl Tokenizer {
         }
     }
     fn read_string(&mut self) -> Result<String, JsonError> {
-        let start = self.position - 1;
+        let start_position = self.position - 1;
         let mut value = String::new();
+        let mut closed = false;
 
         while let Some(next_character) = self.advance() {
             match next_character {
-                '"' => return Ok(value),
-
+                '"' => {
+                    closed = true;
+                    break;
+                }
                 '\\' => match self.advance() {
                     Some('n') => value.push('\n'),
                     Some('t') => value.push('\t'),
@@ -106,35 +110,35 @@ impl Tokenizer {
                     Some('r') => value.push('\r'),
                     Some('b') => value.push('\u{0008}'),
                     Some('f') => value.push('\u{000C}'),
-
                     Some('u') => {
                         let character = self.read_unicode_escape()?;
                         value.push(character);
                     }
-
                     Some(other) => {
                         return Err(JsonError::InvalidEscape {
                             char: other,
                             position: self.position - 1,
                         });
                     }
-
                     None => {
                         return Err(JsonError::UnexpectedEndOfInput {
-                            expected: "Closing quote".to_string(),
-                            position: start,
+                            expected: "escape character".to_string(),
+                            position: self.position,
                         });
                     }
                 },
-
                 _ => value.push(next_character),
             }
         }
 
-        Err(JsonError::UnexpectedEndOfInput {
-            expected: "Closing quote".to_string(),
-            position: start,
-        })
+        if !closed {
+            return Err(JsonError::UnexpectedEndOfInput {
+                expected: "Closing quote".to_string(),
+                position: start_position,
+            });
+        }
+
+        Ok(value)
     }
     fn read_unicode_escape(&mut self) -> Result<char, JsonError> {
         let mut hex = String::new();
@@ -156,17 +160,16 @@ impl Tokenizer {
                 }
             }
         }
-
         let code = u32::from_str_radix(&hex, 16).map_err(|_| JsonError::InvalidUnicode {
             sequence: hex.clone(),
             position: self.position,
         })?;
-
         char::from_u32(code).ok_or(JsonError::InvalidUnicode {
             sequence: hex,
             position: self.position,
         })
     }
+
     fn peek(&self) -> Option<char> {
         self.input.get(self.position).copied()
     }
@@ -222,31 +225,35 @@ mod tests {
         Ok(())
     }
 
-    // Tests will be added here, one step at a time.
     #[test]
     fn test_empty_braces() -> Result<()> {
         let mut tokenizer = Tokenizer::new("{}");
         let tokens = tokenizer.tokenize()?;
+
         assert_eq!(tokens.len(), 2);
         assert_eq!(tokens[0], Token::LeftBrace);
         assert_eq!(tokens[1], Token::RightBrace);
         Ok(())
     }
 
-    //     #[test]
-    //     fn test_simple_string() {
-    //         let tokens = tokenize(r#""hello""#);
-    //         assert_eq!(tokens.len(), 1);
-    //         assert_eq!(tokens[0], Token::String("hello".to_string()));
-    //    }
-    //
-    //     #[test]
-    //     fn test_tokenize_string() {
-    //         let tokens = tokenize(r#""hello world""#);
-    //
-    //         assert_eq!(tokens.len(), 1);
-    //         assert_eq!(tokens[0], Token::String("hello world".to_string()));
-    //     }
+    #[test]
+    fn test_simple_string() -> Result<()> {
+        let mut tokenizer = Tokenizer::new(r#""hello""#);
+        let tokens = tokenizer.tokenize()?;
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0], Token::String("hello".to_string()));
+        Ok(())
+    }
+
+    #[test]
+    fn test_tokenize_string() -> Result<()> {
+        let mut tokenizer = Tokenizer::new(r#""hello world""#);
+        let tokens = tokenizer.tokenize()?;
+
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0], Token::String("hello world".to_string()));
+        Ok(())
+    }
     #[test]
     fn test_empty_string() -> Result<()> {
         //Outer boundary: adjacent quotes with no inner content
@@ -310,22 +317,20 @@ mod tests {
 
     #[test]
     fn test_simple_object() -> Result<()> {
-        let mut tokenizer = Tokenizer::new(r#"{"name": "Alice"}"#);
+        let mut tokenizer = Tokenizer::new(r#"{"name": "alice"}"#);
         let tokens = tokenizer.tokenize()?;
         assert_eq!(tokens.len(), 5);
         assert_eq!(tokens[0], Token::LeftBrace);
         assert_eq!(tokens[1], Token::String("name".to_string()));
         assert_eq!(tokens[2], Token::Colon);
-        assert_eq!(tokens[3], Token::String("Alice".to_string()));
+        assert_eq!(tokens[3], Token::String("alice".to_string()));
         assert_eq!(tokens[4], Token::RightBrace);
-
         Ok(())
     }
     #[test]
     fn test_multiple_values() -> Result<()> {
         let mut tokenizer = Tokenizer::new(r#"{"age": 30, "active": true}"#);
         let tokens = tokenizer.tokenize()?;
-
         assert!(tokens.contains(&Token::String("age".to_string())));
         assert!(tokens.contains(&Token::Number(30.0)));
         assert!(tokens.contains(&Token::Comma));
