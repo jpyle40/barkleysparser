@@ -122,3 +122,14 @@ fn dumps(obj: &Bound<'_, PyAny>, indent: Option<usize>) -> PyResult<String> {
         Some(n) => Ok(value.pretty_print(n)),
     }
 }
+
+#[pymodule]
+fn _rust_json_parser(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(parse_json, m)?)?;
+    m.add_function(wrap_pyfunction!(parse_json_file, m)?)?;
+    m.add_function(wrap_pyfunction!(dumps, m)?)?;
+
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
+
+    Ok(())
+}
