@@ -117,6 +117,55 @@ impl fmt::Display for JsonValue {
     }
 }
 
+impl JsonValue {
+    pub fn pretty_print(&self, indent: usize) -> String {
+        self.pretty_print_depth(indent, 0)
+    }
+
+    fn pretty_print_depth(&self, indent: usize, depth: usize) -> String {
+        match self {
+            JsonValue::Array(values) if !values.is_empty() => {
+                let padding = " ".repeat((depth + 1) * indent);
+                let closing_padding = " ".repeat(depth * indent);
+
+                let items: Vec<String> = values
+                    .iter()
+                    .map(|value| {
+                        format!(
+                            "{}{}",
+                            padding,
+                            value.pretty_print_depth(indent, depth + 1)
+                        )
+                    })
+                    .collect();
+
+                format!("[\n{}\n{}]", items.join(",\n"), closing_padding)
+            }
+
+            JsonValue::Object(map) if !map.is_empty() => {
+                let padding = " ".repeat((depth + 1) * indent);
+                let closing_padding = " ".repeat(depth * indent);
+
+                let items: Vec<String> = map
+                    .iter()
+                    .map(|(key, value)| {
+                        format!(
+                            "{}{}: {}",
+                            padding,
+                            JsonValue::String(key.clone()),
+                            value.pretty_print_depth(indent, depth + 1)
+                        )
+                    })
+                    .collect();
+
+                format!("{{\n{}\n{}}}", items.join(",\n"), closing_padding)
+            }
+
+            _ => self.to_string(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
