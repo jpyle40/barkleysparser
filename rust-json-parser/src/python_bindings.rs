@@ -48,18 +48,9 @@ impl<'py> IntoPyObject<'py> for JsonValue {
 
 impl From<JsonError> for PyErr {
     fn from(err: JsonError) -> PyErr {
-        match err {
-            JsonError::UnexpectedToken { .. }
-            | JsonError::UnexpectedEndOfInput { .. }
-            | JsonError::InvalidNumber { .. }
-            | JsonError::InvalidEscape { .. }
-            | JsonError::InvalidUnicode { .. } => {
-                PyValueError::new_err(err.to_string())
-            }
-        }
+        PyValueError::new_err(err.to_string())
     }
 }
-
 #[pyfunction]
 fn parse_json<'py>(py: Python<'py>, input: &str) -> PyResult<Bound<'py, PyAny>> {
     let mut parser = JsonParser::new(input)?;

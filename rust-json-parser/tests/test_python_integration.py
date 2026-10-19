@@ -26,10 +26,8 @@ class TestErrorHandling:
             parse_json('{"unclosed": "string')
 
     def test_error_includes_position(self):
-        try:
+        with pytest.raises(ValueError, match="position"):
             parse_json('{"bad": }')
-        except ValueError as e:
-            assert "position" in str(e).lower()
 
     def test_file_not_found_raises_io_error(self):
         with pytest.raises(IOError):
