@@ -47,6 +47,4 @@ mod tests {
             _ => panic!("Expected UnexpectedToken error"),
         }
     }
-#[cfg(feature = "python")]
-mod python_bindings;
 }
