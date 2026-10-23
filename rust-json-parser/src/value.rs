@@ -258,6 +258,21 @@ mod tests {
         assert!(output.contains("[1,2]"));
         Ok(())
     }
+    #[test]
+    fn test_pretty_print_nested_round_trip() -> Result<(), JsonError> {
+        let json = r#"{"server":{"disks":[100,200,300],"online":true},"errors":null}"#;
+
+        let mut parser = JsonParser::new(json)?;
+        let original = parser.parse()?;
+
+        let formatted = original.pretty_print(2);
+
+        let mut parser = JsonParser::new(&formatted)?;
+        let reparsed = parser.parse()?;
+
+        assert_eq!(original, reparsed);
+        Ok(())
+    }
 
     #[test]
     fn test_display_nested_array() {
