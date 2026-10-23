@@ -1,10 +1,10 @@
-use pyo3::prelude::*;
-use pyo3::IntoPyObjectExt;
-use pyo3::types::{PyDict, PyList};
-use crate::JsonValue;
-use pyo3::exceptions::PyValueError;
 use crate::JsonError;
+use crate::JsonValue;
 use crate::parser::JsonParser;
+use pyo3::IntoPyObjectExt;
+use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
+use pyo3::types::{PyDict, PyList};
 
 impl<'py> IntoPyObject<'py> for JsonValue {
     type Target = PyAny;
@@ -15,17 +15,11 @@ impl<'py> IntoPyObject<'py> for JsonValue {
         match self {
             JsonValue::Null => Ok(py.None().into_bound_py_any(py)?),
 
-            JsonValue::Boolean(value) => {
-                Ok(value.into_pyobject(py)?.to_owned().into_any())
-            }
+            JsonValue::Boolean(value) => Ok(value.into_pyobject(py)?.to_owned().into_any()),
 
-            JsonValue::Number(value) => {
-                Ok(value.into_pyobject(py)?.to_owned().into_any())
-            }
+            JsonValue::Number(value) => Ok(value.into_pyobject(py)?.to_owned().into_any()),
 
-            JsonValue::String(value) => {
-                Ok(value.into_pyobject(py)?.into_any())
-            }
+            JsonValue::String(value) => Ok(value.into_pyobject(py)?.into_any()),
 
             JsonValue::Array(values) => {
                 let list = PyList::empty(py);

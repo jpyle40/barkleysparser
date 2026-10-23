@@ -5,6 +5,22 @@ from . import parse_json, parse_json_file, dumps
 
 
 def main():
+    if len(sys.argv) == 1:
+        if not sys.stdin.isatty():
+            try:
+                data = sys.stdin.read()
+                result = parse_json(data)
+                print(dumps(result, indent=2))
+                return
+            except ValueError as error:
+                print(f"Error: {error}", file=sys.stderr)
+                sys.exit(1)
+
+        print("Usage: python -m rust_json_parser <file_or_json>")
+        sys.exit(1)    
+    if sys.argv[1] in ("--help", "-h"):
+        print("Usage: python -m rust_json_parser <file_or_json>")
+        sys.exit(0)
     if len(sys.argv) > 1:
         argument = sys.argv[1]
 

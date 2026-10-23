@@ -131,11 +131,7 @@ impl JsonValue {
                 let items: Vec<String> = values
                     .iter()
                     .map(|value| {
-                        format!(
-                            "{}{}",
-                            padding,
-                            value.pretty_print_depth(indent, depth + 1)
-                        )
+                        format!("{}{}", padding, value.pretty_print_depth(indent, depth + 1))
                     })
                     .collect();
 
