@@ -3,6 +3,9 @@ mod parser;
 mod tokenizer;
 mod value;
 
+#[cfg(feature = "python")]
+mod python_bindings;
+
 pub use error::JsonError;
 pub use parser::parse_json;
 pub use tokenizer::{Token, Tokenizer};
