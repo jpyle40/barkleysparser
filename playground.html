@@ -1,0 +1,124 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON Playground | Rust JSON Parser</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #0f1419;
+    color: #e6e1cf;
+    font: 16px system-ui, sans-serif;
+  }
+  main { max-width: 1000px; margin: 45px auto; padding: 20px; }
+  h1 { color: #39bae6; }
+  p { color: #b8c1cc; }
+  a { color: #ffb454; }
+  .panel {
+    background: #1f2430;
+    border: 1px solid #394451;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+  }
+  textarea, pre {
+    width: 100%;
+    min-height: 230px;
+    padding: 15px;
+    background: #111820;
+    color: #b8e986;
+    border: 1px solid #465363;
+    border-radius: 6px;
+    font: 14px/1.6 monospace;
+  }
+  textarea { resize: vertical; }
+  pre { overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+  button {
+    padding: 11px 18px;
+    margin: 8px 8px 0 0;
+    border: 0;
+    border-radius: 6px;
+    background: #39bae6;
+    color: #0f1419;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button:hover { background: #73d0ff; }
+  .status { margin-top: 12px; font-weight: bold; }
+  .valid { color: #aad94c; }
+  .invalid { color: #ff738a; }
+  .key { color: #73d0ff; }
+  .string { color: #aad94c; }
+  .number { color: #ffb454; }
+  .boolean { color: #d4bfff; }
+  .null { color: #ff738a; }
+</style>
+</head>
+<body>
+<main>
+  <a href="rust_json_parser/">← Back to Documentation</a>
+  <h1>{ } JSON Playground</h1>
+  <p>Experiment with JSON, format it, and explore parsing errors.</p>
+  <p>This demo uses your browser's JavaScript JSON parser.</p>
+
+  <div class="panel">
+    <h2>JSON Input</h2>
+    <textarea id="input" spellcheck="false"></textarea>
+    <div>
+      <button onclick="parseJSON()">Parse JSON</button>
+      <button onclick="loadExample()">Load Example</button>
+      <button onclick="clearJSON()">Clear</button>
+    </div>
+    <div id="status" class="status" role="status"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Parsed Output</h2>
+    <pre id="output" aria-live="polite">Your results will appear here.</pre>
+  </div>
+</main>
+
+<script>
+const input = document.getElementById("input");
+const output = document.getElementById("output");
+const status = document.getElementById("status");
+
+function parseJSON() {
+  try {
+    const formatted = JSON.stringify(JSON.parse(input.value), null, 2);
+    output.textContent = formatted;
+    status.textContent = "✓ Valid JSON";
+    status.className = "status valid";
+  } catch (error) {
+    output.textContent = error.message;
+    status.textContent = "✗ Invalid JSON";
+    status.className = "status invalid";
+  }
+}
+
+function clearJSON() {
+  input.value = "";
+  output.textContent = "Your results will appear here.";
+  status.textContent = "";
+}
+
+function loadExample() {
+  input.value = JSON.stringify({
+    server: "linux01",
+    storage: {
+      volumes: [100, 200, 300],
+      online: true,
+      errors: null
+    }
+  }, null, 2);
+  parseJSON();
+}
+
+loadExample();
+</script>
+</body>
+</html>
+
