@@ -1,3 +1,30 @@
+//! # Rust JSON Parser
+//!
+//! A JSON parser written in Rust for learning and demonstrating
+//! parsing techniques, error handling, and Python integration.
+//!
+//! ## Features
+//!
+//! - Tokenizes JSON input into individual tokens.
+//! - Parses JSON into structured `JsonValue` types.
+//! - Supports objects, arrays, strings, numbers, booleans, and null.
+//! - Provides descriptive errors for invalid JSON input.
+//! - Supports Python integration through optional PyO3 bindings.
+//!
+//! ## Example
+//!
+//! ```
+//! use rust_json_parser::{parse_json, JsonValue};
+//!
+//! let result = parse_json(r#"{"name": "server01"}"#).unwrap();
+//!
+//! assert!(matches!(result, JsonValue::Object(_)));
+//! ```
+//!
+//! ## Python Integration
+//!
+//! Enable the `python` feature to build Python bindings using PyO3.
+
 mod error;
 mod parser;
 mod tokenizer;
