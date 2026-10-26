@@ -118,7 +118,9 @@ function loadExample() {
   }, null, 2);
   parseJSON();
 }
-
+window.parseJSON = parseJSON;
+window.clearJSON = clearJSON;
+window.loadExample = loadExample;
 loadExample();
 </script>
 </body>
