@@ -1,0 +1,39 @@
+
+/* Rust JSON Parser — Custom Dark Theme */
+
+body {
+    background: #101827;
+    color: #e2e8f0;
+}
+
+.main-heading,
+h1, h2, h3, h4 {
+    color: #67e8f9;
+}
+
+a, a:visited {
+    color: #fb923c;
+}
+
+a:hover {
+    color: #facc15;
+}
+
+pre, .example-wrap {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+}
+
+code {
+    color: #a5f3fc;
+}
+
+.sidebar {
+    background: #172033;
+}
+
+.docblock {
+    color: #e2e8f0;
+}
+
