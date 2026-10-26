@@ -37,3 +37,50 @@ code {
     color: #e2e8f0;
 }
 
+/* Improve readability on the dark background */
+
+/* Code examples */
+pre,
+pre code,
+.example-wrap pre,
+.example-wrap pre code {
+    background: #1e293b !important;
+    color: #e2e8f0 !important;
+}
+
+/* Inline code */
+:not(pre) > code {
+    background: #263449 !important;
+    color: #67e8f9 !important;
+}
+
+/* Sidebar and navigation */
+.sidebar,
+.sidebar h2,
+.sidebar h3,
+.sidebar .location,
+.sidebar .crate,
+.sidebar .version,
+.sidebar .sidebar-crate {
+    color: #e2e8f0 !important;
+}
+
+.sidebar a,
+.sidebar a:visited {
+    color: #7dd3fc !important;
+}
+
+/* Top navigation buttons */
+.topbar,
+.topbar a,
+.topbar button,
+.topbar .label,
+.topbar .setting-menu {
+    color: #e2e8f0 !important;
+}
+
+/* Links */
+a:hover {
+    color: #facc15 !important;
+}
+
