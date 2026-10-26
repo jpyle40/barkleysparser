@@ -62,7 +62,7 @@
   <a href="rust_json_parser/">← Back to Documentation</a>
   <h1>{ } JSON Playground</h1>
   <p>Experiment with JSON, format it, and explore parsing errors.</p>
-  <p>This demo uses your browser's JavaScript JSON parser.</p>
+  <p>This demo uses my Rust JSON parser compiled to WebAssembly.</p>
 
   <div class="panel">
     <h2>JSON Input</h2>
@@ -81,14 +81,16 @@
   </div>
 </main>
 
-<script>
+<script="modile">
+import init, { parse_json_wasm } from "./wasm/rust_json_parser.js";
+await init();
 const input = document.getElementById("input");
 const output = document.getElementById("output");
 const status = document.getElementById("status");
 
 function parseJSON() {
   try {
-    const formatted = JSON.stringify(JSON.parse(input.value), null, 2);
+    const formatted = JSON.stringify(JSON.parse(parse_json_wasm(input.value)), null, 2);
     output.textContent = formatted;
     status.textContent = "✓ Valid JSON";
     status.className = "status valid";
