@@ -13,7 +13,7 @@ impl Tokenizer {
     }
 
     pub fn tokenize(&mut self) -> Result<Vec<Token>, JsonError> {
-        let mut tokens = Vec::new();
+        let mut tokens = Vec::with_capacity(self.input.len() / 4 + 1);
 
         while let Some(character) = self.advance() {
             let token = match character {
