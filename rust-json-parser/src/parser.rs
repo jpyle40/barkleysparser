@@ -164,6 +164,26 @@ impl JsonParser {
     }
 }
 
+/// Parses a JSON string into a [`JsonValue`].
+///
+/// Converts valid JSON text into its corresponding Rust representation.
+///
+/// # Examples
+///
+/// ```
+/// use rust_json_parser::{parse_json, JsonValue};
+///
+/// let result = parse_json(r#"{"name": "server01"}"#).unwrap();
+///
+/// assert!(matches!(result, JsonValue::Object(_)));
+/// ```
+///
+/// # Errors
+///
+/// Returns a [`JsonError`](crate::JsonError) if the input contains
+/// invalid JSON syntax, such as an unexpected token, invalid number,
+/// invalid escape sequence, or incomplete JSON input.
+///
 pub fn parse_json(input: &str) -> Result<JsonValue> {
     JsonParser::new(input)?.parse()
 }
