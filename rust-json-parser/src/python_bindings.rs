@@ -71,7 +71,7 @@ impl From<JsonError> for PyErr {
 fn parse_json<'py>(py: Python<'py>, input: &str) -> PyResult<Bound<'py, PyAny>> {
     let mut parser = JsonParser::new(input)?;
     let value = parser.parse()?;
-    Ok(value.into_pyobject(py)?)
+    value.into_pyobject(py)
 }
 
 /// Parses a JSON file and returns the result as a Python object.
@@ -102,7 +102,7 @@ fn parse_json_file<'py>(py: Python<'py>, path: &str) -> PyResult<Bound<'py, PyAn
     let contents = std::fs::read_to_string(path)?;
     let mut parser = JsonParser::new(&contents)?;
     let value = parser.parse()?;
-    Ok(value.into_pyobject(py)?)
+    value.into_pyobject(py)
 }
 
 fn py_to_json_value(obj: &Bound<'_, PyAny>) -> PyResult<JsonValue> {
@@ -164,7 +164,9 @@ fn benchmark_performance(
     iterations: usize,
 ) -> PyResult<(f64, f64, f64)> {
     if iterations == 0 {
-        return Err(PyValueError::new_err("iterations must be greater than zero"));
+        return Err(PyValueError::new_err(
+            "iterations must be greater than zero",
+        ));
     }
 
     // Benchmark the Rust parser.
