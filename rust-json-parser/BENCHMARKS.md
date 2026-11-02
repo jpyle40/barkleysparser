@@ -75,3 +75,26 @@ The Rust parser was also faster than Python's standard `json` parser and `simple
 
 These results are preliminary because the original baseline was measured only once. Repeated baseline runs would be needed to confirm that the measured improvements are attributable to the optimization rather than normal benchmark variation.
 
+## Updated Benchmark (Python Object Conversion Included)
+
+The benchmark was updated to include Python object conversion
+in the Rust parser, ensuring a fairer comparison with Python's
+json and simplejson parsers.
+
+All three parsers received 100 warmup runs before timing.
+
+| Parser | Time (seconds) |
+|--------|----------------|
+| Rust | 0.000689 |
+| Python json | 0.001086 |
+| simplejson | 0.001360 |
+
+Results are from 1,000 iterations using the JSON sample
+{"name":"test","age":30}.
+
+Rust was approximately 1.58x faster than Python json and
+1.98x faster than simplejson in this run.
+
+The earlier benchmark tables used Rust parse-only timing and
+are retained as historical results. They are not directly
+comparable with these updated measurements.

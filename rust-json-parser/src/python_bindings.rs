@@ -168,17 +168,27 @@ fn benchmark_performance(
             "iterations must be greater than zero",
         ));
     }
+    // Warm up the Rust parser.
+    let warmup = 100;
+    for _ in 0..warmup {
+        let _ = JsonParser::new(json_str)?.parse()?.into_pyobject(py)?;
+    }
 
     // Benchmark the Rust parser.
     let start = Instant::now();
     for _ in 0..iterations {
-        let _ = JsonParser::new(json_str)?.parse()?;
+        let _ = JsonParser::new(json_str)?.parse()?.into_pyobject(py)?;
     }
     let rust_time = start.elapsed().as_secs_f64();
 
     // Benchmark Python's built-in json parser.
     let json_module = py.import("json")?;
     let json_loads = json_module.getattr("loads")?;
+
+    // Warm up Python's built-in JSON parser.
+    for _ in 0..warmup {
+        let _ = json_loads.call1((json_str,))?;
+    }
 
     let start = Instant::now();
     for _ in 0..iterations {
