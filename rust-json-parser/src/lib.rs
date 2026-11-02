@@ -1,14 +1,13 @@
+//! # Rust JSON Parser
+//!
+//! A JSON parser written in Rust for learning and demonstrating
+//! parsing techniques, error handling, and Python integration.
 //!
 //! ## Try My Rust Parser
 //!
 //! [Launch the JSON Playground](https://jpyle40.github.io/barkleysparser/playground.html)
 //!
 //! Run my Rust JSON parser directly in your browser using WebAssembly.
-//!
-//! # Rust JSON Parser
-//!
-//! A JSON parser written in Rust for learning and demonstrating
-//! parsing techniques, error handling, and Python integration.
 //!
 //! ## Features
 //!

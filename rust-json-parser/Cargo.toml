@@ -14,3 +14,5 @@ wasm-bindgen = { version = "0.2.129", optional = true }
 [features]
 python = ["pyo3"]
 wasm-bindgen = ["dep:wasm-bindgen"]
+[package.metadata.docs.rs]
+rustdoc-args = ["--extend-css", "custom.css"]
