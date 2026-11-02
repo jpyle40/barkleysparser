@@ -1,3 +1,10 @@
+//!
+//! ## Try My Rust Parser
+//!
+//! [Launch the JSON Playground](https://jpyle40.github.io/barkleysparser/playground.html)
+//!
+//! Run my Rust JSON parser directly in your browser using WebAssembly.
+//!
 //! # Rust JSON Parser
 //!
 //! A JSON parser written in Rust for learning and demonstrating
@@ -32,6 +39,8 @@ mod value;
 
 #[cfg(feature = "python")]
 mod python_bindings;
+#[cfg(feature = "wasm-bindgen")]
+mod wasm_bindings;
 
 pub use error::JsonError;
 pub use parser::parse_json;
