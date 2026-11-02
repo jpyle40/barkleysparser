@@ -2,7 +2,7 @@
 import pytest
 
 # Import will fail until you build with maturin
-from rust_json_parser import parse_json, parse_json_file, dumps
+from rust_json_parser import parse_json, parse_json_file, dumps, benchmark_performance
 
 class TestTypeConversions:
     def test_null_becomes_none(self):
@@ -63,3 +63,12 @@ class TestSerialization:
     def test_dumps_with_indent(self):
         result = dumps({"key": "value"}, indent=2)
         assert '\n' in result
+
+class TestBenchmark:
+    def test_benchmark_returns_tuple(self):
+        result = benchmark_performance('{"name": "server01"}', 10)
+
+        assert isinstance(result, tuple)
+        assert len(result) == 3
+        assert all(isinstance(t, float) for t in result)
+        assert all(t >= 0 for t in result)
