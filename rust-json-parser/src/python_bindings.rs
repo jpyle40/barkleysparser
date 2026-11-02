@@ -200,6 +200,11 @@ fn benchmark_performance(
     let simplejson_module = py.import("simplejson")?;
     let simplejson_loads = simplejson_module.getattr("loads")?;
 
+    // Warm up Python's simplejson parser.
+    for _ in 0..warmup {
+        let _ = simplejson_loads.call1((json_str,))?;
+    }
+
     let start = Instant::now();
     for _ in 0..iterations {
         let _ = simplejson_loads.call1((json_str,))?;
