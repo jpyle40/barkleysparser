@@ -171,13 +171,15 @@ impl JsonParser {
 /// # Examples
 ///
 /// ```
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// use rust_json_parser::{parse_json, JsonValue};
 ///
-/// let result = parse_json(r#"{"name": "server01"}"#).unwrap();
+/// let result = parse_json(r#"{"name": "server01"}"#)?;
 ///
 /// assert!(matches!(result, JsonValue::Object(_)));
+/// # Ok(())
+/// # }
 /// ```
-///
 /// # Errors
 ///
 /// Returns a [`JsonError`](crate::JsonError) if the input contains
