@@ -1,16 +1,39 @@
 use std::collections::HashMap;
 use std::fmt;
 
+/// Represents a JSON value.
+///
+/// Supports the six JSON data types: null, boolean, number,
+/// string, array, and object.
+///
+/// # Examples
+///
+/// ```
+/// use rust_json_parser::JsonValue;
+///
+/// let value = JsonValue::Number(42.0);
+/// assert_eq!(value.as_f64(), Some(42.0));
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub enum JsonValue {
+    /// Represents a JSON null value.
     Null,
+
+    /// Represents a JSON boolean (`true` or `false`).
     Boolean(bool),
+
+    /// Represents a JSON number stored as an `f64`.
     Number(f64),
+
+    /// Represents a JSON string.
     String(String),
+
+    /// Represents a JSON array containing other JSON values.
     Array(Vec<JsonValue>),
+
+    /// Represents a JSON object containing key-value pairs.
     Object(HashMap<String, JsonValue>),
 }
-
 // TODO: Implement helper methods
 impl JsonValue {
     pub fn is_null(&self) -> bool {

@@ -1,30 +1,40 @@
 use std::fmt;
 
+/// Represents errors encountered while tokenizing or parsing JSON.
+///
+/// Each variant identifies a specific parsing failure and
+/// includes information about where the error occurred.
 #[derive(Debug, Clone, PartialEq)]
 pub enum JsonError {
+    /// Occurs when the parser encounters a token that was not expected.
+    ///
+    /// For example, an invalid character such as `@` in JSON input.
     UnexpectedToken {
         expected: String,
         found: String,
         position: usize,
     },
-    UnexpectedEndOfInput {
-        expected: String,
-        position: usize,
-    },
-    InvalidNumber {
-        value: String,
-        position: usize,
-    },
-    InvalidEscape {
-        char: char,
-        position: usize,
-    },
-    InvalidUnicode {
-        sequence: String,
-        position: usize,
-    },
-}
 
+    /// Occurs when JSON input ends before a required token is found.
+    ///
+    /// For example, an array missing its closing bracket.
+    UnexpectedEndOfInput { expected: String, position: usize },
+
+    /// Occurs when a JSON number has an invalid format.
+    ///
+    /// For example, a number with an invalid decimal or exponent.
+    InvalidNumber { value: String, position: usize },
+
+    /// Occurs when a JSON string contains an unsupported escape sequence.
+    ///
+    /// For example, `\q` is not a valid JSON escape sequence.
+    InvalidEscape { char: char, position: usize },
+
+    /// Occurs when a JSON string contains an invalid Unicode escape.
+    ///
+    /// For example, `\uZZZZ` is not a valid Unicode escape.
+    InvalidUnicode { sequence: String, position: usize },
+}
 impl fmt::Display for JsonError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

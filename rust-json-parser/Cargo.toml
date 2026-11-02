@@ -9,6 +9,10 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 pyo3 = { version = "0.27", features = ["extension-module"], optional = true }
+wasm-bindgen = { version = "0.2.129", optional = true }
 
 [features]
 python = ["pyo3"]
+wasm-bindgen = ["dep:wasm-bindgen"]
+[package.metadata.docs.rs]
+rustdoc-args = ["--extend-css", "custom.css"]
