@@ -12,3 +12,6 @@ dependencies = ["typer>=0.9.0", "simplejson>=3.19.0"]
 python-source = "python"
 module-name = "rust_json_parser._rust_json_parser"
 features = ["python"]
+
+[tool.uv]
+no-binary-package = ["simplejson"]

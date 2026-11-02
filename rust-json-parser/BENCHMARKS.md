@@ -98,3 +98,27 @@ Rust was approximately 1.58x faster than Python json and
 The earlier benchmark tables used Rust parse-only timing and
 are retained as historical results. They are not directly
 comparable with these updated measurements.
+
+## Updated Benchmark (Python Object Conversion Included)
+
+The Rust benchmark includes Python object conversion.
+All three parsers received 100 warmup runs before timing.
+
+Python simplejson 4.2.0 was installed from source with
+DISABLE_SPEEDUPS=1 to disable its C extension.
+Verified that simplejson._speedups was unavailable.
+
+| Parser | Time (seconds) |
+|--------|----------------|
+| Rust | 0.000672 |
+| Python json | 0.001101 |
+| Pure-Python simplejson | 0.004370 |
+
+Results are from 1,000 iterations using:
+{"name":"test","age":30}
+
+Rust was approximately 1.64x faster than Python json
+and 6.50x faster than pure-Python simplejson.
+
+Earlier benchmark tables are retained as historical results
+and are not directly comparable with these measurements.
